@@ -16,6 +16,7 @@ RUN apt-get update \
         g++ \
         libffi-dev \
         libssl-dev \
+        curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,7 +28,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+COPY src/ ./src/
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
@@ -39,7 +40,7 @@ EXPOSE 8001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8001/api/ || exit 1
+    CMD curl -f http://localhost:8001/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8001"]
