@@ -1,5 +1,5 @@
 # Development Dockerfile for React frontend
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -15,14 +15,6 @@ RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs \
-    && adduser -S nextjs -u 1001 -G nodejs \
-    && chown -R nextjs:nodejs /app
-
-# Switch to non-root user
-USER nextjs
 
 # Expose port
 EXPOSE 3000
