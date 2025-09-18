@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: TalentSync Backend API
+  version: 1.0.0
+paths:
+  /api/jobs:
+    get:
+      summary: Get all job postings
+      responses:
+        '200':
+          description: List of job postings
+    post:
+      summary: Create a new job posting
+      responses:
+        '201':
+          description: Job posting created
+  /api/jobs/{job_id}:
+    get:
+      summary: Get a job posting by ID
+      responses:
+        '200':
+          description: Job posting details
+        '404':
+          description: Job not found
+    put:
+      summary: Update a job posting
+      responses:
+        '200':
+          description: Job posting updated
+        '404':
+          description: Job not found
+    delete:
+      summary: Delete a job posting
+      responses:
+        '200':
+          description: Job deleted
+        '404':
+          description: Job not found
+  /api/jobs/upload:
+    post:
+      summary: Upload a job document
+      responses:
+        '200':
+          description: Job created from document
+        '400':
+          description: Invalid file type
+  /api/jobs/{job_id}/candidates:
+    get:
+      summary: Get candidates matching a job
+      responses:
+        '200':
+          description: List of candidates
+        '404':
+          description: Job not found

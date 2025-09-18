@@ -18,6 +18,39 @@ var/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
+
+# Old files
+server.py
+
+# Development and testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Documentation
+README.md
+
+# Git
+.git/
+.gitignore
 *.egg-info/
 .installed.cfg
 *.egg
