@@ -5,11 +5,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Load environment variables
-ROOT_DIR = Path(__file__).parent.parent.parent
-load_dotenv(ROOT_DIR / '.env')
 
 
 class DatabaseService:
