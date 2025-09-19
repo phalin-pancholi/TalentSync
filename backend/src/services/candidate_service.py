@@ -38,7 +38,7 @@ class CandidateService:
             if document_id:
                 candidate_dict['document_id'] = ObjectId(document_id)
             
-            result = self.collection.insert_one(candidate_dict)
+            result = await self.collection.insert_one(candidate_dict)
             return str(result.inserted_id)
         except DuplicateKeyError:
             raise HTTPException(status_code=400, detail="Email already exists")
@@ -48,7 +48,7 @@ class CandidateService:
     async def get_candidate(self, candidate_id: str) -> Optional[Candidate]:
         """Get a candidate by ID"""
         try:
-            candidate = self.collection.find_one({"_id": ObjectId(candidate_id)})
+            candidate = await self.collection.find_one({"_id": ObjectId(candidate_id)})
             if candidate:
                 return Candidate(**candidate)
             return None
@@ -59,8 +59,9 @@ class CandidateService:
         """Get all candidates with pagination"""
         try:
             cursor = self.collection.find().skip(skip).limit(limit).sort("created_at", -1)
+            candidate_docs = await cursor.to_list(length=limit)
             candidates = []
-            for candidate_doc in cursor:
+            for candidate_doc in candidate_docs:
                 candidates.append(Candidate(**candidate_doc))
             return candidates
         except Exception as e:
@@ -75,14 +76,14 @@ class CandidateService:
                 
                 # Check for email uniqueness if email is being updated
                 if 'email' in update_data:
-                    existing = self.collection.find_one({
+                    existing = await self.collection.find_one({
                         "email": update_data['email'],
                         "_id": {"$ne": ObjectId(candidate_id)}
                     })
                     if existing:
                         raise HTTPException(status_code=400, detail="Email already exists")
                 
-                result = self.collection.find_one_and_update(
+                result = await self.collection.find_one_and_update(
                     {"_id": ObjectId(candidate_id)},
                     {"$set": update_data},
                     return_document=True
@@ -99,7 +100,7 @@ class CandidateService:
     async def delete_candidate(self, candidate_id: str) -> bool:
         """Delete a candidate"""
         try:
-            result = self.collection.delete_one({"_id": ObjectId(candidate_id)})
+            result = await self.collection.delete_one({"_id": ObjectId(candidate_id)})
             return result.deleted_count > 0
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error deleting candidate: {str(e)}")
@@ -131,7 +132,7 @@ class CandidateService:
     async def get_candidate_by_email(self, email: str) -> Optional[Candidate]:
         """Get a candidate by email"""
         try:
-            candidate = self.collection.find_one({"email": email})
+            candidate = await self.collection.find_one({"email": email})
             if candidate:
                 return Candidate(**candidate)
             return None

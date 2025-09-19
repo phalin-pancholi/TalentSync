@@ -60,7 +60,7 @@ class DocumentService:
                 'upload_date': datetime.utcnow()
             }
             
-            result = self.collection.insert_one(document_data)
+            result = await self.collection.insert_one(document_data)
             return str(result.inserted_id)
             
         except HTTPException:
@@ -71,7 +71,7 @@ class DocumentService:
     async def get_document(self, document_id: str) -> Optional[Document]:
         """Get a document by ID"""
         try:
-            document = self.collection.find_one({"_id": ObjectId(document_id)})
+            document = await self.collection.find_one({"_id": ObjectId(document_id)})
             if document:
                 return Document(**document)
             return None
@@ -81,7 +81,7 @@ class DocumentService:
     async def get_document_by_candidate(self, candidate_id: str) -> Optional[Document]:
         """Get a document by candidate ID"""
         try:
-            document = self.collection.find_one({"candidate_id": ObjectId(candidate_id)})
+            document = await self.collection.find_one({"candidate_id": ObjectId(candidate_id)})
             if document:
                 return Document(**document)
             return None
@@ -102,7 +102,7 @@ class DocumentService:
                     pass  # Continue even if file deletion fails
                 
                 # Delete from database
-                result = self.collection.delete_one({"_id": ObjectId(document_id)})
+                result = await self.collection.delete_one({"_id": ObjectId(document_id)})
                 return result.deleted_count > 0
             return False
         except Exception as e:
