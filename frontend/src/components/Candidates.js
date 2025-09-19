@@ -24,8 +24,7 @@ const Candidates = () => {
     name: '',
     email: '',
     phone: '',
-    skills: '',
-    document: null
+    skills: ''
   });
 
   useEffect(() => {
@@ -48,18 +47,8 @@ const Candidates = () => {
     e.preventDefault();
     
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('email', formData.email);
-      formDataToSend.append('phone', formData.phone || '');
-      formDataToSend.append('skills', formData.skills);
-      
-      if (formData.document) {
-        formDataToSend.append('document', formData.document);
-      }
-
       if (editingCandidate) {
-        // Update candidate (without file upload for now)
+        // Update candidate
         const updateData = {
           name: formData.name,
           email: formData.email,
@@ -70,10 +59,17 @@ const Candidates = () => {
         await axios.put(`${API}/candidates/${editingCandidate.id}`, updateData);
         toast.success('Candidate updated successfully');
       } else {
-        // Create new candidate
-        await axios.post(`${API}/candidates`, formDataToSend, {
+        // Create new candidate (JSON data only, no file upload)
+        const candidateData = {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          skills: formData.skills.split(',').map(s => s.trim()).filter(s => s)
+        };
+        
+        await axios.post(`${API}/candidates/json`, candidateData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
         });
         toast.success('Candidate created successfully');
@@ -93,8 +89,7 @@ const Candidates = () => {
       name: candidate.name,
       email: candidate.email,
       phone: candidate.phone || '',
-      skills: candidate.skills.join(', '),
-      document: null
+      skills: candidate.skills.join(', ')
     });
     setShowCreateForm(true);
   };
@@ -117,25 +112,10 @@ const Candidates = () => {
       name: '',
       email: '',
       phone: '',
-      skills: '',
-      document: null
+      skills: ''
     });
     setEditingCandidate(null);
     setShowCreateForm(false);
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-      if (allowedTypes.includes(file.type)) {
-        setFormData({ ...formData, document: file });
-      } else {
-        toast.error('Please select a PDF, DOCX, or TXT file');
-        e.target.value = '';
-      }
-    }
   };
 
   const handleDocumentUpload = async () => {
@@ -317,19 +297,6 @@ const Candidates = () => {
                     placeholder="e.g., Python, React, MongoDB"
                   />
                 </div>
-                {!editingCandidate && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Resume/Document (PDF, DOCX, or TXT)
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={handleFileChange}
-                      accept=".pdf,.docx,.txt"
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                  </div>
-                )}
               </div>
               <div className="flex gap-2">
                 <Button type="submit">
