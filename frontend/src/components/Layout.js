@@ -9,15 +9,16 @@ const Layout = ({ children }) => {
     const path = location.pathname;
     const segments = path.split('/').filter(Boolean);
     
-    if (path === '/') return [{ label: 'Home', path: '/' }];
+    if (path === '/') return [{ label: 'Jobs', path: '/' }];
+    if (path === '/candidates') return [{ label: 'Candidates', path: '/candidates' }];
     
-    const breadcrumbs = [{ label: 'Home', path: '/' }];
+    const breadcrumbs = [{ label: 'Jobs', path: '/' }];
     
     if (segments[0] === 'jobs' && segments[1]) {
       breadcrumbs.push({ label: 'Job Details', path: `/jobs/${segments[1]}` });
       
       if (segments[2] === 'candidates') {
-        breadcrumbs.push({ label: 'Candidates', path: `/jobs/${segments[1]}/candidates` });
+        breadcrumbs.push({ label: 'Matching Candidates', path: `/jobs/${segments[1]}/candidates` });
       }
     }
     
@@ -46,8 +47,15 @@ const Layout = ({ children }) => {
                 to="/" 
                 className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors duration-200"
               >
-                <Home className="w-4 h-4" />
+                <Briefcase className="w-4 h-4" />
                 <span className="font-medium">Jobs</span>
+              </Link>
+              <Link 
+                to="/candidates" 
+                className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors duration-200"
+              >
+                <Users className="w-4 h-4" />
+                <span className="font-medium">Candidates</span>
               </Link>
             </nav>
           </div>

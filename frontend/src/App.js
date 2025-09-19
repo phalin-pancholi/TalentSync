@@ -5,6 +5,7 @@ import { Toaster } from "./components/ui/sonner";
 import Home from "./components/Home";
 import JobDetails from "./components/JobDetails";
 import Candidates from "./components/Candidates";
+import JobCandidates from "./components/JobCandidates";
 import Layout from "./components/Layout";
 
 function App() {
@@ -15,7 +16,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/jobs/:id" element={<JobDetails />} />
-            <Route path="/jobs/:id/candidates" element={<Candidates />} />
+            <Route path="/jobs/:id/candidates" element={<JobCandidates />} />
+            <Route path="/candidates" element={<Candidates />} />
           </Routes>
         </Layout>
       </BrowserRouter>

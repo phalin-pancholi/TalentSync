@@ -36,3 +36,10 @@ class DatabaseService:
 
 # Global database service instance
 database_service = DatabaseService()
+
+
+def get_database():
+    """Get the current database instance"""
+    if database_service.database is None:
+        raise RuntimeError("Database not connected")
+    return database_service.database
