@@ -4,7 +4,7 @@ Job service for TalentSync backend
 from typing import List, Optional
 from datetime import datetime, timezone
 
-from ..models.job_posting import JobPosting, JobPostingCreate, JobPostingUpdate
+from ..models.job_posting import JobPosting, JobPostingCreate, JobPostingUpdate, JobPostingLLMCreate
 from .db_service import database_service
 
 
@@ -50,6 +50,14 @@ class JobService:
         
         updated_job = await collection.find_one({"id": job_id})
         return JobPosting(**updated_job)
+    
+    async def create_job_from_llm(self, job_data: JobPostingLLMCreate) -> JobPosting:
+        """Create a new job posting from LLM extraction (allows null fields)"""
+        collection = database_service.get_collection(self.collection_name)
+        job_dict = job_data.dict()
+        job_obj = JobPosting(**job_dict)
+        await collection.insert_one(job_obj.dict())
+        return job_obj
     
     async def delete_job(self, job_id: str) -> bool:
         """Delete a job posting"""

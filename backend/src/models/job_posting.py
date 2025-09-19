@@ -9,17 +9,27 @@ import uuid
 
 class JobPostingBase(BaseModel):
     """Base JobPosting model with common fields"""
-    title: str
-    description: str
-    skills: List[str]
-    experience_level: str
-    department: str
-    location: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    skills: Optional[List[str]] = None
+    experience_level: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
 
 
 class JobPostingCreate(JobPostingBase):
     """Model for creating a new job posting"""
     pass
+
+
+class JobPostingLLMCreate(BaseModel):
+    """Model for creating a job posting from LLM extraction - all fields optional"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    skills: Optional[List[str]] = None
+    experience_level: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
 
 
 class JobPostingUpdate(BaseModel):
