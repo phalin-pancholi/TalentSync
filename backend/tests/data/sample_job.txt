@@ -1,0 +1,20 @@
+Software Engineer - Full Stack
+
+Job Description:
+We are seeking a talented Full Stack Software Engineer to join our innovative team. You will be responsible for developing and maintaining web applications using modern technologies.
+
+Requirements:
+- 3+ years of experience in software development
+- Proficiency in JavaScript, Python, and React
+- Experience with databases (SQL/NoSQL)
+- Strong problem-solving skills
+- Bachelor's degree in Computer Science or related field
+
+Location: San Francisco, CA
+Department: Engineering
+Employment Type: Full-time
+
+About the Role:
+As a Full Stack Engineer, you will work on both frontend and backend systems, collaborate with cross-functional teams, and help shape our product roadmap. We offer competitive compensation, excellent benefits, and opportunities for professional growth.
+
+Apply today to join our team!
