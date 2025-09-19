@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: Candidate Raw Data & Profile Summary API
+  version: 1.0.0
+paths:
+  /candidates/raw:
+    post:
+      summary: Upload candidate raw data (resume, feedback)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Raw data uploaded
+        '400':
+          description: Invalid input
+  /candidates/raw/search:
+    get:
+      summary: Search candidate raw data by email or key
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+            format: email
+        - in: query
+          name: candidate_id
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidate raw data found
+        '404':
+          description: Not found
+  /candidates/{candidate_id}/generate-profile:
+    post:
+      summary: Generate profile summary using Gemini LLM
+      parameters:
+        - in: path
+          name: candidate_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile summary PDF generated
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: LLM or PDF generation error

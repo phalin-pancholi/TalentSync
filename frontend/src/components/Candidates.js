@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Mail, MapPin, Briefcase, Star, TrendingUp } from 'lucide-react';
+import { ArrowLeft, User, Mail, MapPin, Briefcase, Star, TrendingUp, FileText, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -16,6 +16,8 @@ const Candidates = () => {
   const [job, setJob] = useState(null);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [generatingProfile, setGeneratingProfile] = useState({});
+  const [uploadingFiles, setUploadingFiles] = useState({});
 
   useEffect(() => {
     fetchJobAndCandidates();
@@ -30,15 +32,91 @@ const Candidates = () => {
       
       setJob(jobResponse.data);
       setCandidates(candidatesResponse.data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to fetch candidates');
-    } finally {
+      toast.error('Failed to load job or candidates');
       setLoading(false);
     }
   };
 
-  const getMatchColor = (percentage) => {
+  const handleUploadFiles = async (candidateEmail, files) => {
+    if (!files || files.length === 0) {
+      toast.error('Please select files to upload');
+      return;
+    }
+
+    setUploadingFiles(prev => ({ ...prev, [candidateEmail]: true }));
+    
+    try {
+      const formData = new FormData();
+      formData.append('email', candidateEmail);
+      
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await axios.post(`${API}/candidates/raw`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success(`Files uploaded successfully for ${candidateEmail}`);
+      return response.data.candidate_id;
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error(`Failed to upload files: ${error.response?.data?.detail || error.message}`);
+      return null;
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [candidateEmail]: false }));
+    }
+  };
+
+  const handleGenerateProfile = async (candidateEmail) => {
+    setGeneratingProfile(prev => ({ ...prev, [candidateEmail]: true }));
+    
+    try {
+      // First, search for the candidate to get their ID
+      const searchResponse = await axios.get(`${API}/candidates/raw/search`, {
+        params: { email: candidateEmail }
+      });
+
+      if (!searchResponse.data) {
+        toast.error('No raw data found for this candidate. Please upload files first.');
+        return;
+      }
+
+      const candidateId = searchResponse.data.candidate_id;
+
+      // Generate profile
+      const response = await axios.post(`${API}/candidates/${candidateId}/generate-profile`, {}, {
+        responseType: 'blob',
+      });
+
+      // Create download link
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `profile_${candidateEmail.replace('@', '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      toast.success('Profile generated and downloaded successfully!');
+    } catch (error) {
+      console.error('Error generating profile:', error);
+      if (error.response?.status === 404) {
+        toast.error('No raw data found for this candidate. Please upload files first.');
+      } else {
+        toast.error(`Failed to generate profile: ${error.response?.data?.detail || error.message}`);
+      }
+    } finally {
+      setGeneratingProfile(prev => ({ ...prev, [candidateEmail]: false }));
+    }
+  };  const getMatchColor = (percentage) => {
     if (percentage >= 80) return 'text-green-600 bg-green-100';
     if (percentage >= 60) return 'text-blue-600 bg-blue-100';
     if (percentage >= 40) return 'text-yellow-600 bg-yellow-100';
@@ -220,22 +298,64 @@ const Candidates = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex space-x-2 pt-4 border-t border-slate-100">
-                  <Button 
-                    size="sm" 
-                    className="flex-1 btn-animate gradient-teal-blue text-white"
-                    onClick={() => toast.success(`Contacted ${candidate.name}`)}
-                  >
-                    Contact Candidate
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="btn-animate"
-                    onClick={() => toast.success(`Added ${candidate.name} to shortlist`)}
-                  >
-                    Shortlist
-                  </Button>
+                <div className="flex flex-col space-y-2 pt-4 border-t border-slate-100">
+                  <div className="flex space-x-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 btn-animate gradient-teal-blue text-white"
+                      onClick={() => toast.success(`Contacted ${candidate.name}`)}
+                    >
+                      Contact Candidate
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="btn-animate"
+                      onClick={() => toast.success(`Added ${candidate.name} to shortlist`)}
+                    >
+                      Shortlist
+                    </Button>
+                  </div>
+                  
+                  {/* Raw Data Upload and Profile Generation */}
+                  <div className="flex space-x-2">
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id={`file-upload-${candidate.email}`}
+                        multiple
+                        accept=".pdf,.docx,.txt"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (files.length > 0) {
+                            await handleUploadFiles(candidate.email, files);
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full btn-animate"
+                        disabled={uploadingFiles[candidate.email]}
+                        onClick={() => document.getElementById(`file-upload-${candidate.email}`).click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingFiles[candidate.email] ? 'Uploading...' : 'Upload Files'}
+                      </Button>
+                    </div>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="btn-animate bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      disabled={generatingProfile[candidate.email]}
+                      onClick={() => handleGenerateProfile(candidate.email)}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      {generatingProfile[candidate.email] ? 'Generating...' : 'Generate Profile'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

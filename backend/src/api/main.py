@@ -11,6 +11,7 @@ from ..utils.logging import logger
 
 from .jobs import router as jobs_router
 from .matching import router as matching_router
+from .candidate_raw_data import router as candidate_raw_data_router
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ app.add_middleware(
 api_prefix = "/api"
 app.include_router(jobs_router, prefix=api_prefix)
 app.include_router(matching_router, prefix=api_prefix)
+app.include_router(candidate_raw_data_router, prefix=api_prefix)
 
 
 @app.get("/")
