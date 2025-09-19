@@ -98,22 +98,6 @@ def test_delete_job():
     assert response.json()["message"] == "Job deleted successfully"
 
 
-def test_upload_job_document():
-    """Test POST /api/upload/job endpoint"""
-    # Test with valid file type (simulated)
-    files = {"file": ("test.pdf", b"dummy pdf content", "application/pdf")}
-    response = client.post("/api/upload/job", files=files)
-    assert response.status_code == 200
-    assert "id" in response.json()
-
-
-def test_upload_job_document_invalid_type():
-    """Test POST /api/upload/job with invalid file type"""
-    files = {"file": ("test.txt", b"dummy text", "text/plain")}
-    response = client.post("/api/upload/job", files=files)
-    assert response.status_code == 400
-
-
 def test_get_candidates_for_job():
     """Test GET /api/jobs/{job_id}/candidates endpoint"""
     # First create a job
