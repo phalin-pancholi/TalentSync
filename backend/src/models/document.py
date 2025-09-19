@@ -43,6 +43,24 @@ class DocumentCreate(DocumentBase):
     candidate_id: PyObjectId
 
 
+class RawTextData(BaseModel):
+    """Model for storing raw text data extracted from documents"""
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    text: str = Field(..., description="Raw extracted text from document")
+    source_document_id: Optional[PyObjectId] = Field(None, description="Reference to source document")
+    candidate_id: Optional[PyObjectId] = Field(None, description="Reference to associated candidate")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    extraction_method: Optional[str] = Field(None, description="Method used for text extraction")
+    file_hash: Optional[str] = Field(None, description="Hash of original file for duplicate detection")
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str},
+        from_attributes=True
+    )
+
+
 class DocumentUpdate(BaseModel):
     file_name: Optional[str] = Field(None, min_length=1, max_length=255)
     file_type: Optional[str] = Field(None, pattern="^(PDF|DOCX|TXT)$")

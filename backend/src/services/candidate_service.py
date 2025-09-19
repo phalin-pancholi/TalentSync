@@ -7,7 +7,8 @@ from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 from fastapi import HTTPException
 
-from ..models.candidate import Candidate, CandidateCreate, CandidateUpdate, CandidateResponse
+from ..models.candidate import Candidate, CandidateCreate, CandidateUpdate, CandidateResponse, CandidateLLMCreate
+from ..models.document import RawTextData
 from ..services.db_service import get_database
 
 
@@ -27,6 +28,11 @@ class CandidateService:
         if self._collection is None:
             self._collection = self.db.candidates
         return self._collection
+    
+    @property
+    def raw_text_collection(self):
+        """Get collection for raw text data"""
+        return self.db.raw_text_data
 
     async def create_candidate(self, candidate_data: CandidateCreate, document_id: Optional[str] = None) -> str:
         """Create a new candidate"""
@@ -139,6 +145,50 @@ class CandidateService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error retrieving candidate by email: {str(e)}")
 
+    async def create_candidate_from_llm(
+        self, 
+        candidate_data: CandidateLLMCreate, 
+        raw_text: str, 
+        file_hash: str
+    ) -> str:
+        """Create a candidate from LLM extraction with raw text storage"""
+        try:
+            # Create candidate document with optional fields
+            candidate_dict = candidate_data.dict()
+            candidate_dict['created_at'] = datetime.utcnow()
+            candidate_dict['updated_at'] = datetime.utcnow()
+            candidate_dict['raw_text'] = raw_text
+            candidate_dict['file_hash'] = file_hash
+            
+            # Insert candidate
+            result = await self.collection.insert_one(candidate_dict)
+            candidate_id = result.inserted_id
+            
+            # Store raw text data separately for future reference
+            raw_text_data = {
+                'text': raw_text,
+                'candidate_id': candidate_id,
+                'created_at': datetime.utcnow(),
+                'extraction_method': 'LLM',
+                'file_hash': file_hash
+            }
+            await self.raw_text_collection.insert_one(raw_text_data)
+            
+            return str(candidate_id)
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error creating candidate from LLM: {str(e)}")
+
+    async def get_candidate_by_file_hash(self, file_hash: str) -> Optional[Candidate]:
+        """Get a candidate by file hash to detect duplicates"""
+        try:
+            candidate = await self.collection.find_one({"file_hash": file_hash})
+            if candidate:
+                return Candidate(**candidate)
+            return None
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error retrieving candidate by file hash: {str(e)}")
+
     def to_response(self, candidate: Candidate) -> CandidateResponse:
         """Convert Candidate to CandidateResponse"""
         return CandidateResponse(
@@ -147,7 +197,11 @@ class CandidateService:
             email=candidate.email,
             phone=candidate.phone,
             skills=candidate.skills,
+            experience=getattr(candidate, 'experience', None),
+            education=getattr(candidate, 'education', None),
+            summary=getattr(candidate, 'summary', None),
             created_at=candidate.created_at,
             updated_at=candidate.updated_at,
-            document_id=str(candidate.document_id) if candidate.document_id else None
+            document_id=str(candidate.document_id) if candidate.document_id else None,
+            raw_text=getattr(candidate, 'raw_text', None)
         )

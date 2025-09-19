@@ -1,0 +1,54 @@
+openapi: 3.0.0
+info:
+  title: Candidate Document Upload and LLM Extraction API
+  version: 1.0.0
+paths:
+  /candidates/upload:
+    post:
+      summary: Upload a candidate document (resume/CV), extract text, and create candidate profile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Candidate profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfileResponse'
+        '400':
+          description: Invalid file or extraction error
+        '409':
+          description: Duplicate document detected
+components:
+  schemas:
+    CandidateProfileResponse:
+      type: object
+      properties:
+        candidate:
+          $ref: '#/components/schemas/CandidateProfile'
+        raw_text:
+          type: string
+    CandidateProfile:
+      type: object
+      properties:
+        name:
+          type: string
+        contact:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        experience:
+          type: string
+        education:
+          type: string
+        # ...other optional fields

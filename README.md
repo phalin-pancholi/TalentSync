@@ -1,6 +1,6 @@
 # TalentSync
 
-A comprehensive talent matching platform that connects job seekers with opportunities using AI-powered job description processing.
+A comprehensive talent matching platform that connects job seekers with opportunities using AI-powered job description processing and candidate resume extraction.
 
 ## Features
 
@@ -15,6 +15,15 @@ Upload job description documents (PDF or text files) and automatically extract s
 - **AI extraction**: Uses Google Gemini to extract job details
 - **Flexible structure**: Handles missing or incomplete information gracefully
 - **Database integration**: Automatically creates job entries
+
+### 🆕 NEW: LLM-based Candidate Upload
+Upload candidate resumes/CVs and automatically extract structured candidate information using AI:
+- **Supported formats**: PDF, DOCX, TXT files
+- **AI extraction**: Uses Google Gemini to extract candidate details (name, email, skills, experience, education)
+- **Flexible structure**: Allows saving candidates with missing fields
+- **Raw text storage**: Stores original text for future reference
+- **Duplicate detection**: Prevents duplicate candidates based on file hash
+- **Error handling**: Graceful fallback for parsing or LLM failures
 
 ## Quick Start
 
@@ -38,7 +47,15 @@ Upload job description documents (PDF or text files) and automatically extract s
      -F "file=@your_job_description.pdf"
    ```
 
-For detailed setup and troubleshooting, see [specs/002-add-llm-based/quickstart.md](specs/002-add-llm-based/quickstart.md).
+### LLM Candidate Upload Feature
+
+1. **Upload a candidate resume**:
+   ```bash
+   curl -X POST "http://localhost:8000/api/candidates/upload" \
+     -F "file=@candidate_resume.pdf"
+   ```
+
+For detailed setup and troubleshooting, see [specs/002-add-llm-based/quickstart.md](specs/002-add-llm-based/quickstart.md) and [specs/004-there-is-funtionality/quickstart.md](specs/004-there-is-funtionality/quickstart.md).
 
 ## API Endpoints
 
@@ -54,6 +71,7 @@ For detailed setup and troubleshooting, see [specs/002-add-llm-based/quickstart.
 - `GET /api/candidates/` - List all candidates
 - `POST /api/candidates/` - Create candidate profile
 - `GET /api/candidates/{id}` - Get candidate by ID
+- **`POST /api/candidates/upload`** - 🆕 Upload resume/CV document for AI extraction
 
 ### Matching
 - `POST /api/matching/` - Find job matches for candidate

@@ -33,17 +33,20 @@ class PyObjectId(ObjectId):
 
 class CandidateBase(BaseModel):
     """Base Candidate model with common fields"""
-    name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    email: Optional[str] = None  # Changed from EmailStr to allow LLM extraction flexibility
     phone: Optional[str] = Field(None, max_length=20)
-    skills: List[str] = Field(..., min_items=1)
+    skills: Optional[List[str]] = None  # Made optional to allow missing fields
+    experience: Optional[str] = None
+    education: Optional[str] = None
+    summary: Optional[str] = None
 
     @field_validator('skills')
     @classmethod
     def validate_skills(cls, v):
-        if not v or len(v) == 0:
-            raise ValueError('At least one skill is required')
-        return [skill.strip() for skill in v if skill.strip()]
+        if v is not None and len(v) == 0:
+            return None  # Allow empty list to be None
+        return [skill.strip() for skill in v if skill.strip()] if v else None
 
 
 class CandidateCreate(CandidateBase):
@@ -72,6 +75,7 @@ class Candidate(CandidateBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     document_id: Optional[PyObjectId] = None
+    raw_text: Optional[str] = None  # Store raw extracted text
     # Legacy fields for backward compatibility
     match_percentage: float = 0.0
     matched_skills: List[str] = []
@@ -84,13 +88,47 @@ class Candidate(CandidateBase):
     )
 
 
+class CandidateDocument(BaseModel):
+    """Model for candidate documents (resumes, CVs)"""
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    filename: str = Field(..., min_length=1, max_length=255)
+    file_content: bytes = Field(...)
+    file_type: str = Field(..., max_length=50)  # e.g., 'application/pdf', 'text/plain'
+    file_size: int = Field(..., gt=0)
+    upload_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    candidate_id: Optional[PyObjectId] = None
+    extracted_text: Optional[str] = None
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str},
+        from_attributes=True
+    )
+
+
+class CandidateLLMCreate(BaseModel):
+    """Model for creating a candidate from LLM extraction - all fields optional"""
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    skills: Optional[List[str]] = None
+    experience: Optional[str] = None
+    education: Optional[str] = None
+    summary: Optional[str] = None
+
+
 class CandidateResponse(BaseModel):
     """Response model for Candidate with string IDs"""
     id: str
-    name: str
-    email: str
+    name: Optional[str] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
-    skills: List[str]
+    skills: Optional[List[str]] = None
+    experience: Optional[str] = None
+    education: Optional[str] = None
+    summary: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     document_id: Optional[str] = None
+    raw_text: Optional[str] = None

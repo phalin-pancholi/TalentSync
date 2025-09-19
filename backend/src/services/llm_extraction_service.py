@@ -81,6 +81,129 @@ class LLMExtractionService:
             logger.error(f"Failed to extract job information: {str(e)}")
             raise Exception(f"LLM extraction failed: {str(e)}")
     
+    async def extract_candidate_info(self, text_content: str):
+        """
+        Extract structured candidate information from text content (resume/CV)
+        
+        Args:
+            text_content: Raw text content from candidate document
+            
+        Returns:
+            CandidateLLMCreate: Extracted candidate information with optional fields
+            
+        Raises:
+            Exception: If LLM service is unavailable or extraction fails
+        """
+        if not self.llm:
+            raise Exception("LLM service is not available. Please check API key configuration.")
+        
+        if not text_content.strip():
+            raise ValueError("Empty text content provided for extraction")
+        
+        try:
+            # Create extraction prompt for candidate
+            prompt = self._create_candidate_extraction_prompt(text_content)
+            
+            # Call LLM
+            messages = [
+                SystemMessage(content="You are an expert at extracting structured candidate information from resumes and CVs. Always respond with valid JSON."),
+                HumanMessage(content=prompt)
+            ]
+            
+            response = self.llm.invoke(messages)
+            
+            # Parse response
+            candidate_data = self._parse_candidate_llm_response(response.content, text_content)
+            
+            # Import here to avoid circular imports
+            from ..models.candidate import CandidateLLMCreate
+            
+            # Create and validate model
+            candidate = CandidateLLMCreate(**candidate_data)
+            
+            logger.info(f"Successfully extracted candidate information. Fields found: {list(candidate_data.keys())}")
+            return candidate
+            
+        except Exception as e:
+            logger.error(f"Failed to extract candidate information: {str(e)}")
+            raise Exception(f"LLM extraction failed: {str(e)}")
+    
+    def _create_candidate_extraction_prompt(self, text_content: str) -> str:
+        """Create a prompt for candidate information extraction"""
+        return f"""
+Extract candidate information from the following resume/CV text and return it as a JSON object with these fields:
+- name: Full name of the candidate (string or null)
+- email: Email address (string or null)
+- phone: Phone number (string or null)
+- skills: Skills and technologies as an array of strings (array or null)
+- experience: Work experience summary (string or null)
+- education: Educational background (string or null)
+- summary: Professional summary or objective (string or null)
+
+Rules:
+1. Only extract information that is explicitly mentioned in the text
+2. If a field is not mentioned or unclear, set it to null
+3. For skills, extract individual skills and technologies as separate array items
+4. For experience, provide a brief summary of work history
+5. For education, include degrees, institutions, and relevant details
+6. Return ONLY valid JSON, no additional text
+
+Resume/CV Text:
+{text_content}
+
+JSON Response:
+"""
+    
+    def _parse_candidate_llm_response(self, response_content: str, text_content: str) -> Dict[str, Any]:
+        """Parse and validate LLM response for candidate extraction"""
+        try:
+            # Try to find JSON in the response
+            response_content = response_content.strip()
+            
+            # If response starts with ```json, extract the JSON part
+            if response_content.startswith('```json'):
+                start = response_content.find('{')
+                end = response_content.rfind('}') + 1
+                response_content = response_content[start:end]
+            elif response_content.startswith('```'):
+                start = response_content.find('{')
+                end = response_content.rfind('}') + 1
+                response_content = response_content[start:end]
+            
+            # Parse JSON
+            candidate_data = json.loads(response_content)
+            
+            # Ensure all expected fields exist with None as default
+            expected_fields = ['name', 'email', 'phone', 'skills', 'experience', 'education', 'summary']
+            for field in expected_fields:
+                if field not in candidate_data:
+                    candidate_data[field] = None
+            
+            # Clean up empty strings and convert to None
+            for key, value in candidate_data.items():
+                if isinstance(value, str) and not value.strip():
+                    candidate_data[key] = None
+                elif isinstance(value, list) and not value:
+                    candidate_data[key] = None
+            
+            return candidate_data
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from LLM response: {response_content}")
+            # Return empty structure if parsing fails - allow partial data
+            return {
+                'name': None,
+                'email': None,
+                'phone': None,
+                'skills': None,
+                'experience': None,
+                'education': None,
+                'summary': text_content[:200] if text_content else None  # Fallback to truncated text
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error parsing candidate LLM response: {str(e)}")
+            raise Exception(f"Failed to parse candidate LLM response: {str(e)}")
+
     def _create_extraction_prompt(self, text_content: str) -> str:
         """Create a prompt for job information extraction"""
         return f"""
@@ -144,7 +267,7 @@ JSON Response:
             # Return empty structure if parsing fails
             return {
                 'title': None,
-                'description': text_content[:200] if text_content else None,  # Fallback to truncated text
+                'description': None,
                 'skills': None,
                 'experience_level': None,
                 'department': None,

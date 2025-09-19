@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, User, Mail, Phone, FileText, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Mail, Phone, FileText, Search, Upload } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -14,14 +15,16 @@ const Candidates = () => {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    skills: '',
-    document: null
+    skills: ''
   });
 
   useEffect(() => {
@@ -44,18 +47,8 @@ const Candidates = () => {
     e.preventDefault();
     
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('email', formData.email);
-      formDataToSend.append('phone', formData.phone || '');
-      formDataToSend.append('skills', formData.skills);
-      
-      if (formData.document) {
-        formDataToSend.append('document', formData.document);
-      }
-
       if (editingCandidate) {
-        // Update candidate (without file upload for now)
+        // Update candidate
         const updateData = {
           name: formData.name,
           email: formData.email,
@@ -66,10 +59,17 @@ const Candidates = () => {
         await axios.put(`${API}/candidates/${editingCandidate.id}`, updateData);
         toast.success('Candidate updated successfully');
       } else {
-        // Create new candidate
-        await axios.post(`${API}/candidates`, formDataToSend, {
+        // Create new candidate (JSON data only, no file upload)
+        const candidateData = {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          skills: formData.skills.split(',').map(s => s.trim()).filter(s => s)
+        };
+        
+        await axios.post(`${API}/candidates/json`, candidateData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
         });
         toast.success('Candidate created successfully');
@@ -89,8 +89,7 @@ const Candidates = () => {
       name: candidate.name,
       email: candidate.email,
       phone: candidate.phone || '',
-      skills: candidate.skills.join(', '),
-      document: null
+      skills: candidate.skills.join(', ')
     });
     setShowCreateForm(true);
   };
@@ -113,31 +112,56 @@ const Candidates = () => {
       name: '',
       email: '',
       phone: '',
-      skills: '',
-      document: null
+      skills: ''
     });
     setEditingCandidate(null);
     setShowCreateForm(false);
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-      if (allowedTypes.includes(file.type)) {
-        setFormData({ ...formData, document: file });
+  const handleDocumentUpload = async () => {
+    if (!uploadFile) {
+      toast.error('Please select a resume or CV file');
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+
+    try {
+      const response = await axios.post(`${API}/candidates/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.duplicate) {
+        toast.info('This document already exists in the system');
+      } else if (response.data.parsing_failed) {
+        toast.warning('Document parsing failed. Please enter candidate details manually.');
+      } else if (response.data.llm_unavailable) {
+        toast.warning('LLM service unavailable. Please enter candidate details manually.');
+      } else if (response.data.extraction_failed) {
+        toast.warning('Some candidate details could not be extracted. Please review and complete.');
       } else {
-        toast.error('Please select a PDF, DOCX, or TXT file');
-        e.target.value = '';
+        toast.success('Candidate created successfully from document!');
       }
+      
+      setShowUploadDialog(false);
+      setUploadFile(null);
+      fetchCandidates();
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error(error.response?.data?.detail || 'Failed to process document');
+    } finally {
+      setUploading(false);
     }
   };
 
   const filteredCandidates = candidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+    (candidate.name && candidate.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (candidate.email && candidate.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (candidate.skills && candidate.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   if (loading) {
@@ -154,10 +178,59 @@ const Candidates = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Candidates</h1>
-        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Candidate
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Upload Resume
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Resume/CV</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select a resume or CV file
+                  </label>
+                  <Input
+                    type="file"
+                    onChange={(e) => setUploadFile(e.target.files[0])}
+                    accept=".pdf,.docx,.txt"
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Supported formats: PDF, DOCX, TXT
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleDocumentUpload} 
+                    disabled={uploading || !uploadFile}
+                    className="flex items-center gap-2"
+                  >
+                    {uploading ? 'Processing...' : 'Upload & Create Candidate'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowUploadDialog(false);
+                      setUploadFile(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Manually
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -185,24 +258,22 @@ const Candidates = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
+                    Name
                   </label>
                   <Input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email *
+                    Email
                   </label>
                   <Input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
                   />
                 </div>
                 <div>
@@ -217,29 +288,15 @@ const Candidates = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Skills * (comma-separated)
+                    Skills (comma-separated)
                   </label>
                   <Input
                     type="text"
                     value={formData.skills}
                     onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
                     placeholder="e.g., Python, React, MongoDB"
-                    required
                   />
                 </div>
-                {!editingCandidate && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Resume/Document (PDF, DOCX, or TXT)
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={handleFileChange}
-                      accept=".pdf,.docx,.txt"
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                  </div>
-                )}
               </div>
               <div className="flex gap-2">
                 <Button type="submit">
@@ -262,7 +319,7 @@ const Candidates = () => {
               <div className="flex justify-between items-start">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <User className="h-5 w-5 text-blue-600" />
-                  {candidate.name}
+                  {candidate.name || 'Unnamed Candidate'}
                 </CardTitle>
                 <div className="flex gap-1">
                   <Button
@@ -285,32 +342,50 @@ const Candidates = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail className="h-4 w-4" />
-                {candidate.email}
-              </div>
+              {candidate.email && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Mail className="h-4 w-4" />
+                  {candidate.email}
+                </div>
+              )}
               {candidate.phone && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="h-4 w-4" />
                   {candidate.phone}
                 </div>
               )}
-              {candidate.document_id && (
+              {(candidate.document_id || candidate.raw_text) && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <FileText className="h-4 w-4" />
                   Resume uploaded
                 </div>
               )}
-              <div>
-                <div className="text-sm font-medium text-gray-700 mb-2">Skills:</div>
-                <div className="flex flex-wrap gap-1">
-                  {candidate.skills.map((skill, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
+              {candidate.skills && candidate.skills.length > 0 ? (
+                <div>
+                  <div className="text-sm font-medium text-gray-700 mb-2">Skills:</div>
+                  <div className="flex flex-wrap gap-1">
+                    {candidate.skills.map((skill, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">No skills listed</div>
+              )}
+              {candidate.experience && (
+                <div>
+                  <div className="text-sm font-medium text-gray-700 mb-1">Experience:</div>
+                  <div className="text-sm text-gray-600">{candidate.experience}</div>
+                </div>
+              )}
+              {candidate.education && (
+                <div>
+                  <div className="text-sm font-medium text-gray-700 mb-1">Education:</div>
+                  <div className="text-sm text-gray-600">{candidate.education}</div>
+                </div>
+              )}
               <div className="text-xs text-gray-500 mt-3">
                 Created: {new Date(candidate.created_at).toLocaleDateString()}
               </div>
