@@ -33,6 +33,7 @@ services:
       - MONGO_URL=mongodb://admin:password123@mongodb:27017/talentsync_db?authSource=admin
       - DB_NAME=talentsync_db
       - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+      - DEBUG=True
     ports:
       - "8001:8001"
     depends_on:
@@ -59,6 +60,7 @@ services:
     restart: unless-stopped
     environment:
       - REACT_APP_BACKEND_URL=http://localhost:8001
+      - CHOKIDAR_USEPOLLING=true
     ports:
       - "3000:3000"
     depends_on:
@@ -66,12 +68,31 @@ services:
         condition: service_healthy
     networks:
       - talentsync-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Exclude node_modules from volume mount
+    command: ["yarn", "start"]
+
+  # Backend Tests
+  backend-tests:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    container_name: talentsync-backend-tests
+    environment:
+      - MONGO_URL=mongodb://admin:password123@mongodb:27017/talentsync_test_db?authSource=admin
+      - DB_NAME=talentsync_test_db
+      - TESTING=true
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - talentsync-network
+    volumes:
+      - ./backend/tests:/app/tests
+      - ./backend/src:/app/src
+    profiles:
+      - test
 
 volumes:
   mongodb_data:

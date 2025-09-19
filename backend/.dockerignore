@@ -23,7 +23,6 @@ share/python-wheels/
 server.py
 
 # Development and testing
-tests/
 .pytest_cache/
 .coverage
 htmlcov/
