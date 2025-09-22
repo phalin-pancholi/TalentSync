@@ -5,7 +5,7 @@ Uses Langchain and Gemini to extract structured job information from text
 import os
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, SystemMessage
 from pydantic import ValidationError
@@ -280,3 +280,112 @@ JSON Response:
     def is_service_available(self) -> bool:
         """Check if the LLM service is available"""
         return self.llm is not None and self.api_key is not None
+
+    async def generate_profile_summary(self, candidate_data: Dict[str, Any], feedback_data: List[str] = None) -> str:
+        """
+        Generate a professional profile summary for a candidate using Gemini LLM
+        
+        Args:
+            candidate_data: Dictionary containing candidate information (name, skills, experience, etc.)
+            feedback_data: List of feedback strings about the candidate
+            
+        Returns:
+            str: Generated profile summary text
+            
+        Raises:
+            Exception: If LLM service is unavailable or generation fails
+        """
+        if not self.llm:
+            raise Exception("LLM service is not available. Please check API key configuration.")
+        
+        try:
+            # Create profile summary prompt
+            prompt = self._create_profile_summary_prompt(candidate_data, feedback_data)
+            
+            # Call LLM
+            messages = [
+                SystemMessage(content="You are an expert HR professional who creates compelling, professional profile summaries for candidates. Focus on highlighting strengths, achievements, and potential value to employers."),
+                HumanMessage(content=prompt)
+            ]
+            
+            response = self.llm.invoke(messages)
+            
+            # Clean and return the response
+            profile_summary = response.content.strip()
+            
+            logger.info(f"Successfully generated profile summary for candidate: {candidate_data.get('name', 'Unknown')}")
+            return profile_summary
+            
+        except Exception as e:
+            logger.error(f"Failed to generate profile summary: {str(e)}")
+            raise Exception(f"Profile summary generation failed: {str(e)}")
+
+    def _create_profile_summary_prompt(self, candidate_data: Dict[str, Any], feedback_data: List[str] = None) -> str:
+        """Create a prompt for profile summary generation"""
+        
+        # Extract candidate information
+        name = candidate_data.get('name', 'Candidate')
+        email = candidate_data.get('email', '')
+        phone = candidate_data.get('phone', '')
+        skills = candidate_data.get('skills', [])
+        experience = candidate_data.get('experience', '')
+        education = candidate_data.get('education', '')
+        summary = candidate_data.get('summary', '')
+        raw_text = candidate_data.get('raw_text', '')
+        
+        # Format skills
+        skills_text = ', '.join(skills) if skills else 'Not specified'
+        
+        # Format feedback
+        feedback_text = ""
+        if feedback_data:
+            feedback_text = "\n\nFeedback and Additional Information:\n" + "\n".join([f"- {fb}" for fb in feedback_data])
+        
+        return f"""
+Generate a professional profile summary for the following candidate. The summary should be comprehensive, highlighting key strengths, technical skills, experience, and professional value. Use the provided template structure but adapt the content based on the candidate's actual information.
+
+CANDIDATE INFORMATION:
+Name: {name}
+Email: {email}
+Phone: {phone}
+Skills: {skills_text}
+Experience: {experience}
+Education: {education}
+Professional Summary: {summary}
+Raw Resume/CV Text: {raw_text}{feedback_text}
+
+REQUIRED TEMPLATE STRUCTURE:
+Professional Summary
+[3-4 sentences highlighting role, experience, key technologies, and professional strengths]
+
+Education
+[Educational background including degrees, institutions, certifications]
+
+Key Strengths
+[3-5 bullet points of key professional strengths and abilities]
+
+Technical Skills
+Programming Languages: [list relevant languages]
+Frontend: [frontend technologies]
+Backend: [backend technologies]  
+Databases: [database technologies]
+DevOps: [DevOps tools and practices]
+Other: [other relevant technical skills]
+
+Professional Experience
+[Summary of work experience, key contributions, and achievements]
+
+Project Summary:
+[Brief overview of notable projects or achievements]
+
+INSTRUCTIONS:
+1. Use ONLY the information provided - do not make up details
+2. If information is missing for a section, write "Not specified" or leave appropriate blanks
+3. Focus on professional language and highlight value proposition
+4. Adapt the technical skills section based on the candidate's actual skills
+5. Make the summary compelling while staying factual
+6. If experience level is not clear, infer from the available information
+7. Return the formatted summary ready for PDF generation
+
+Generate the profile summary now:
+"""

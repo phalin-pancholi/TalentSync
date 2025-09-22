@@ -2,8 +2,9 @@
 Unit tests for services
 """
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, Mock
 from src.services.matching_service import MatchingService
+from src.services.document_service import DocumentService
 from src.models.job_posting import JobPosting
 from src.models.candidate import Candidate
 
@@ -89,3 +90,80 @@ async def test_matching_percentage_calculation():
             expected_percentage = (len(candidate.matched_skills) / len(job.skills)) * 100
             assert abs(candidate.match_percentage - expected_percentage) < 0.1
             break
+
+
+class TestDocumentService:
+    """Test cases for DocumentService"""
+    
+    def test_generate_profile_summary_pdf_basic(self):
+        """Test basic PDF generation functionality"""
+        service = DocumentService()
+        
+        candidate_name = "John Doe"
+        profile_summary = """
+Professional Summary
+
+Software Engineer with 5+ years of experience in Python development.
+
+Education
+
+Bachelor's degree in Computer Science
+
+Technical Skills
+
+Programming Languages: Python, JavaScript
+"""
+        
+        result = service.generate_profile_summary_pdf(candidate_name, profile_summary)
+        
+        assert isinstance(result, bytes)
+        assert len(result) > 0
+        
+        # Since we're returning text as bytes, check content
+        content = result.decode('utf-8')
+        assert "John Doe" in content
+        assert "Software Engineer" in content
+        assert "Python" in content
+        assert "PROFILE SUMMARY" in content or "Profile Summary" in content
+
+    def test_generate_profile_summary_pdf_empty_summary(self):
+        """Test PDF generation with empty summary"""
+        service = DocumentService()
+        
+        candidate_name = "Jane Smith"
+        profile_summary = ""
+        
+        result = service.generate_profile_summary_pdf(candidate_name, profile_summary)
+        
+        assert isinstance(result, bytes)
+        content = result.decode('utf-8')
+        assert "Jane Smith" in content
+
+    def test_generate_profile_summary_pdf_special_characters(self):
+        """Test PDF generation with special characters in name and summary"""
+        service = DocumentService()
+        
+        candidate_name = "José García-Smith"
+        profile_summary = "Summary with special chars: àáâã & symbols: @#$%"
+        
+        result = service.generate_profile_summary_pdf(candidate_name, profile_summary)
+        
+        assert isinstance(result, bytes)
+        content = result.decode('utf-8')
+        assert "José García-Smith" in content
+        assert "special chars" in content
+
+    def test_generate_profile_summary_pdf_long_content(self):
+        """Test PDF generation with very long profile summary"""
+        service = DocumentService()
+        
+        candidate_name = "Long Content Test"
+        profile_summary = "Very long summary. " * 1000  # Create very long content
+        
+        result = service.generate_profile_summary_pdf(candidate_name, profile_summary)
+        
+        assert isinstance(result, bytes)
+        assert len(result) > len(profile_summary)  # Should have additional PDF structure
+        
+        content = result.decode('utf-8')
+        assert "Long Content Test" in content
