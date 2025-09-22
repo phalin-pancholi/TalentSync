@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: Candidate Extra Details API
+  version: 1.0.0
+paths:
+  /api/candidates/{candidate_id}/extra-details:
+    post:
+      summary: Upload extra details for a candidate
+      parameters:
+        - in: path
+          name: candidate_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Extra detail uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  candidate_id:
+                    type: string
+                  text_content:
+                    type: string
+                  type:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid file or request
+        '413':
+          description: File too large
+        '415':
+          description: Unsupported file type
+        '422':
+          description: Could not extract text or text is empty

@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse
 import logging
 import hashlib
 
-from ..models.candidate import CandidateCreate, CandidateUpdate, CandidateResponse, CandidateLLMCreate
+from ..models.candidate import (CandidateCreate, CandidateUpdate, CandidateResponse, 
+                               CandidateLLMCreate, CandidateExtraDetailResponse)
 from ..services.candidate_service import CandidateService
 from ..services.document_service import DocumentService
 from ..services.file_parsing_service import FileParsingService
@@ -133,6 +134,63 @@ async def delete_candidate(
         raise HTTPException(status_code=404, detail="Candidate not found")
     
     return JSONResponse(status_code=204, content={"message": "Candidate deleted successfully"})
+
+
+@router.post("/{candidate_id}/extra-details", response_model=CandidateExtraDetailResponse)
+async def upload_candidate_extra_details(
+    candidate_id: str,
+    file: UploadFile = File(...),
+    candidate_service: CandidateService = Depends(lambda: CandidateService())
+):
+    """
+    Upload extra details for a candidate via document upload
+    
+    Accepts .txt or .pdf files (max 5MB) and extracts text to store as extra details.
+    Text can include interview feedback, new skills, work summary, etc.
+    """
+    try:
+        logger.info(f"Uploading extra details for candidate {candidate_id}: filename={file.filename}")
+        
+        # Upload and process the extra details
+        extra_detail = await candidate_service.upload_extra_details(candidate_id, file)
+        
+        logger.info(f"Successfully uploaded extra details for candidate {candidate_id}")
+        return extra_detail
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (validation errors, etc.)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error uploading extra details for candidate {candidate_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="An unexpected error occurred while uploading extra details"
+        )
+
+
+@router.get("/{candidate_id}/extra-details", response_model=List[CandidateExtraDetailResponse])
+async def get_candidate_extra_details(
+    candidate_id: str,
+    candidate_service: CandidateService = Depends(lambda: CandidateService())
+):
+    """Get all extra details for a specific candidate"""
+    try:
+        # Verify candidate exists
+        candidate = await candidate_service.get_candidate(candidate_id)
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        extra_details = await candidate_service.get_candidate_extra_details(candidate_id)
+        return extra_details
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving extra details for candidate {candidate_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="An unexpected error occurred while retrieving extra details"
+        )
 
 
 @router.post("/upload", response_model=dict)

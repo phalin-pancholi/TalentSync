@@ -31,6 +31,37 @@ class PyObjectId(ObjectId):
         return str(super())
 
 
+class CandidateExtraDetail(BaseModel):
+    """Model for extra details uploaded for a candidate"""
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    candidate_id: PyObjectId = Field(...)
+    text_content: str = Field(..., min_length=1)
+    type: Optional[str] = Field(None, max_length=50)  # e.g., 'feedback', 'skills', 'summary'
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str},
+        from_attributes=True
+    )
+
+
+class CandidateExtraDetailCreate(BaseModel):
+    """Model for creating candidate extra details"""
+    text_content: str = Field(..., min_length=1)
+    type: Optional[str] = Field(None, max_length=50)
+
+
+class CandidateExtraDetailResponse(BaseModel):
+    """Response model for CandidateExtraDetail with string IDs"""
+    id: str
+    candidate_id: str
+    text_content: str
+    type: Optional[str] = None
+    created_at: datetime
+
+
 class CandidateBase(BaseModel):
     """Base Candidate model with common fields"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -132,3 +163,4 @@ class CandidateResponse(BaseModel):
     updated_at: datetime
     document_id: Optional[str] = None
     raw_text: Optional[str] = None
+    extra_details: Optional[List[CandidateExtraDetailResponse]] = None
