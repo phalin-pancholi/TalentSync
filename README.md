@@ -25,6 +25,15 @@ Upload candidate resumes/CVs and automatically extract structured candidate info
 - **Duplicate detection**: Prevents duplicate candidates based on file hash
 - **Error handling**: Graceful fallback for parsing or LLM failures
 
+### 🆕 NEW: Profile Summary Generation
+Generate professional PDF profile summaries for candidates using AI:
+- **One-click generation**: Purple download button on candidate cards
+- **Comprehensive data**: Combines structured data, resume text, and feedback
+- **AI-powered**: Uses Google Gemini to create compelling profile summaries
+- **Professional format**: Includes summary, education, skills, experience sections
+- **Instant download**: PDF automatically downloads when ready
+- **Error handling**: Graceful handling of LLM service issues
+
 ## Quick Start
 
 ### LLM Job Upload Feature
@@ -55,7 +64,21 @@ Upload candidate resumes/CVs and automatically extract structured candidate info
      -F "file=@candidate_resume.pdf"
    ```
 
-For detailed setup and troubleshooting, see [specs/002-add-llm-based/quickstart.md](specs/002-add-llm-based/quickstart.md) and [specs/004-there-is-funtionality/quickstart.md](specs/004-there-is-funtionality/quickstart.md).
+### Profile Summary Generation Feature
+
+1. **Generate profile summary for a candidate**:
+   ```bash
+   curl -X POST "http://localhost:8000/api/candidates/{candidate_id}/profile-summary" \
+     -H "Accept: application/pdf" \
+     --output "profile_summary.pdf"
+   ```
+
+2. **Via Frontend**: 
+   - Navigate to Candidates page
+   - Click the purple download button on any candidate card
+   - PDF automatically downloads
+
+For detailed setup and troubleshooting, see [specs/002-add-llm-based/quickstart.md](specs/002-add-llm-based/quickstart.md), [specs/004-there-is-funtionality/quickstart.md](specs/004-there-is-funtionality/quickstart.md), and [specs/006-profile-summary-functionality/quickstart.md](specs/006-profile-summary-functionality/quickstart.md).
 
 ## API Endpoints
 
@@ -72,6 +95,7 @@ For detailed setup and troubleshooting, see [specs/002-add-llm-based/quickstart.
 - `POST /api/candidates/` - Create candidate profile
 - `GET /api/candidates/{id}` - Get candidate by ID
 - **`POST /api/candidates/upload`** - 🆕 Upload resume/CV document for AI extraction
+- **`POST /api/candidates/{id}/profile-summary`** - 🆕 Generate PDF profile summary using AI
 
 ### Matching
 - `POST /api/matching/` - Find job matches for candidate

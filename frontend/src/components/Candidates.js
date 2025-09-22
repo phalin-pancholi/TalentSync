@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, User, Mail, Phone, FileText, Search, Upload, FileUp } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Mail, Phone, FileText, Search, Upload, FileUp, Download } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -27,6 +27,9 @@ const Candidates = () => {
   const [uploadingExtraDetails, setUploadingExtraDetails] = useState(false);
   const [selectedCandidateForDetails, setSelectedCandidateForDetails] = useState(null);
   const [candidateExtraDetails, setCandidateExtraDetails] = useState({});
+  
+  // Profile summary generation state
+  const [generatingProfileSummary, setGeneratingProfileSummary] = useState({});
   
   const [formData, setFormData] = useState({
     name: '',
@@ -237,6 +240,66 @@ const Candidates = () => {
       }));
     } catch (error) {
       console.error('Error fetching extra details:', error);
+    }
+  };
+
+  const generateProfileSummary = async (candidate) => {
+    if (generatingProfileSummary[candidate.id]) {
+      return; // Already generating
+    }
+
+    setGeneratingProfileSummary(prev => ({
+      ...prev,
+      [candidate.id]: true
+    }));
+
+    try {
+      const response = await axios.post(
+        `${API}/candidates/${candidate.id}/profile-summary`,
+        {},
+        {
+          responseType: 'blob', // Important for handling PDF response
+          headers: {
+            'Accept': 'application/pdf'
+          }
+        }
+      );
+
+      // Create a blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename
+      const candidateName = candidate.name || 'candidate';
+      const sanitizedName = candidateName.replace(/[^a-zA-Z0-9]/g, '_');
+      link.download = `profile_summary_${sanitizedName}_${candidate.id.slice(0, 8)}.pdf`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Profile summary generated successfully for ${candidate.name || 'candidate'}`);
+    } catch (error) {
+      console.error('Error generating profile summary:', error);
+      
+      if (error.response?.status === 404) {
+        toast.error('Candidate not found');
+      } else if (error.response?.status === 503) {
+        toast.error('LLM service is currently unavailable. Please try again later.');
+      } else if (error.response?.status === 500) {
+        toast.error('Failed to generate profile summary. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred while generating the profile summary');
+      }
+    } finally {
+      setGeneratingProfileSummary(prev => ({
+        ...prev,
+        [candidate.id]: false
+      }));
     }
   };
 
@@ -482,6 +545,20 @@ const Candidates = () => {
                   {candidate.name || 'Unnamed Candidate'}
                 </CardTitle>
                 <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => generateProfileSummary(candidate)}
+                    disabled={generatingProfileSummary[candidate.id]}
+                    className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700"
+                    title="Generate Profile Summary PDF"
+                  >
+                    {generatingProfileSummary[candidate.id] ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
