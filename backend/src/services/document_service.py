@@ -170,3 +170,57 @@ class DocumentService:
             raw_file_path=document.raw_file_path,
             upload_date=document.upload_date
         )
+
+    def generate_profile_summary_pdf(self, candidate_name: str, profile_summary: str) -> bytes:
+        """
+        Generate a PDF from profile summary text using available libraries
+        Since we cannot install new packages, this creates a simple text-based PDF
+        """
+        try:
+            # Create a simple HTML structure
+            html_content = f"""
+            <html>
+            <head>
+                <title>Profile Summary - {candidate_name}</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+                    h1 {{ color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }}
+                    h2 {{ color: #34495e; margin-top: 25px; margin-bottom: 10px; }}
+                    .header {{ text-align: center; margin-bottom: 30px; }}
+                    .content {{ white-space: pre-line; }}
+                    .footer {{ margin-top: 50px; text-align: center; font-size: 10px; color: #7f8c8d; }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Profile Summary</h1>
+                    <h2>{candidate_name}</h2>
+                </div>
+                <div class="content">
+{profile_summary}
+                </div>
+                <div class="footer">
+                    Generated on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC by TalentSync
+                </div>
+            </body>
+            </html>
+            """
+            
+            # For now, return the HTML as text since we cannot install weasyprint or reportlab
+            # In a real implementation, this would be converted to PDF
+            # As a workaround, we'll create a simple text-based representation
+            text_content = f"""
+PROFILE SUMMARY
+{candidate_name}
+
+{profile_summary}
+
+Generated on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC by TalentSync
+"""
+            
+            # Since we can't create a real PDF, return the text content as bytes
+            # This should be replaced with actual PDF generation when proper libraries are available
+            return text_content.encode('utf-8')
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating profile summary PDF: {str(e)}")

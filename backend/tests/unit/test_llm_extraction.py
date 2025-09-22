@@ -2,7 +2,7 @@
 Unit tests for LLM extraction service
 """
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 import json
 from backend.src.services.llm_extraction_service import LLMExtractionService
 from backend.src.models.job_posting import JobPostingLLMCreate
@@ -201,3 +201,151 @@ class TestLLMExtractionService:
         assert "experience_level" in prompt
         assert "department" in prompt
         assert "location" in prompt
+
+    @pytest.mark.asyncio
+    async def test_generate_profile_summary_without_llm(self):
+        """Test profile summary generation when LLM is not available"""
+        service = LLMExtractionService()
+        service.llm = None
+        
+        candidate_data = {"name": "John Doe", "skills": ["Python"]}
+        
+        with pytest.raises(Exception) as exc_info:
+            await service.generate_profile_summary(candidate_data)
+        assert "LLM service is not available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_generate_profile_summary_success(self):
+        """Test successful profile summary generation"""
+        mock_response = Mock()
+        mock_response.content = """
+Professional Summary
+
+Software Engineer with 4+ years of experience in Python development.
+
+Education
+
+Bachelor's degree in Computer Science
+
+Key Strengths
+
+• Strong problem-solving skills
+• Experience with agile methodologies
+
+Technical Skills
+
+Programming Languages: Python, JavaScript
+Frontend: React, HTML, CSS
+Databases: PostgreSQL, MongoDB
+
+Professional Experience
+
+Developed multiple web applications using Python and React.
+
+Project Summary:
+Successfully delivered 5+ projects on time.
+"""
+        
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = mock_response
+        
+        service = LLMExtractionService()
+        service.llm = mock_llm
+        
+        candidate_data = {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "skills": ["Python", "JavaScript"],
+            "experience": "4+ years in software development",
+            "education": "Bachelor's degree in Computer Science"
+        }
+        feedback_data = ["Great technical interview", "Strong problem solver"]
+        
+        result = await service.generate_profile_summary(candidate_data, feedback_data)
+        
+        assert "Software Engineer" in result
+        assert "Python" in result
+        assert "Bachelor's degree" in result
+        mock_llm.invoke.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_profile_summary_with_minimal_data(self):
+        """Test profile summary generation with minimal candidate data"""
+        mock_response = Mock()
+        mock_response.content = "Basic profile summary for candidate with limited data."
+        
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = mock_response
+        
+        service = LLMExtractionService()
+        service.llm = mock_llm
+        
+        candidate_data = {"name": "Jane Smith"}  # Minimal data
+        
+        result = await service.generate_profile_summary(candidate_data)
+        
+        assert result == "Basic profile summary for candidate with limited data."
+        mock_llm.invoke.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_profile_summary_llm_error(self):
+        """Test profile summary generation when LLM service fails"""
+        mock_llm = Mock()
+        mock_llm.invoke.side_effect = Exception("LLM API error")
+        
+        service = LLMExtractionService()
+        service.llm = mock_llm
+        
+        candidate_data = {"name": "Test Candidate"}
+        
+        with pytest.raises(Exception) as exc_info:
+            await service.generate_profile_summary(candidate_data)
+        assert "Profile summary generation failed" in str(exc_info.value)
+
+    def test_create_profile_summary_prompt(self):
+        """Test profile summary prompt creation"""
+        service = LLMExtractionService()
+        
+        candidate_data = {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "skills": ["Python", "JavaScript"],
+            "experience": "5 years",
+            "education": "BS Computer Science",
+            "summary": "Experienced developer",
+            "raw_text": "Resume content here"
+        }
+        feedback_data = ["Excellent communication", "Strong technical skills"]
+        
+        prompt = service._create_profile_summary_prompt(candidate_data, feedback_data)
+        
+        # Check that all candidate data is included in prompt
+        assert "John Doe" in prompt
+        assert "john@example.com" in prompt
+        assert "Python, JavaScript" in prompt
+        assert "5 years" in prompt
+        assert "BS Computer Science" in prompt
+        assert "Experienced developer" in prompt
+        assert "Resume content here" in prompt
+        
+        # Check that feedback is included
+        assert "Excellent communication" in prompt
+        assert "Strong technical skills" in prompt
+        
+        # Check that template structure is mentioned
+        assert "Professional Summary" in prompt
+        assert "Education" in prompt
+        assert "Technical Skills" in prompt
+        assert "Professional Experience" in prompt
+
+    def test_create_profile_summary_prompt_without_feedback(self):
+        """Test profile summary prompt creation without feedback data"""
+        service = LLMExtractionService()
+        
+        candidate_data = {"name": "Jane Doe", "skills": ["Python"]}
+        
+        prompt = service._create_profile_summary_prompt(candidate_data, None)
+        
+        assert "Jane Doe" in prompt
+        assert "Python" in prompt
+        assert "Feedback and Additional Information" not in prompt

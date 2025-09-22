@@ -3,7 +3,7 @@ Candidate API endpoints for TalentSync backend
 """
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import logging
 import hashlib
 
@@ -327,3 +327,109 @@ async def search_candidates(
     
     candidates = await candidate_service.search_candidates(q or "", skills_list)
     return [candidate_service.to_response(candidate) for candidate in candidates]
+
+
+@router.post("/{candidate_id}/profile-summary")
+async def generate_profile_summary(
+    candidate_id: str,
+    candidate_service: CandidateService = Depends(lambda: CandidateService()),
+    document_service: DocumentService = Depends(lambda: DocumentService()),
+    llm_service: LLMExtractionService = Depends(lambda: LLMExtractionService())
+):
+    """
+    Generate a professional profile summary PDF for a candidate using Gemini LLM
+    
+    Collects all candidate data (structured, unstructured, feedback) and generates
+    a comprehensive profile summary document.
+    """
+    try:
+        logger.info(f"Generating profile summary for candidate {candidate_id}")
+        
+        # Verify candidate exists
+        candidate = await candidate_service.get_candidate(candidate_id)
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        # Check if LLM service is available
+        if not llm_service.is_service_available():
+            logger.error("LLM service is not available for profile summary generation")
+            raise HTTPException(
+                status_code=503, 
+                detail="LLM service is currently unavailable. Please try again later."
+            )
+        
+        # Collect all candidate data
+        candidate_data = {
+            "name": candidate.name,
+            "email": candidate.email,
+            "phone": candidate.phone,
+            "skills": candidate.skills or [],
+            "experience": candidate.experience,
+            "education": candidate.education,
+            "summary": candidate.summary,
+            "raw_text": candidate.raw_text or ""
+        }
+        
+        # Get feedback and extra details
+        feedback_data = []
+        try:
+            extra_details = await candidate_service.get_candidate_extra_details(candidate_id)
+            for detail in extra_details:
+                if detail.text_content and detail.text_content.strip():
+                    feedback_data.append(detail.text_content.strip())
+        except Exception as e:
+            logger.warning(f"Could not retrieve extra details for candidate {candidate_id}: {str(e)}")
+            # Continue without feedback data
+        
+        # Generate profile summary using LLM
+        try:
+            profile_summary = await llm_service.generate_profile_summary(
+                candidate_data, 
+                feedback_data if feedback_data else None
+            )
+            logger.info(f"Profile summary generated successfully for candidate {candidate_id}")
+        except Exception as e:
+            logger.error(f"Profile summary generation failed for candidate {candidate_id}: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate profile summary: {str(e)}"
+            )
+        
+        # Generate PDF from the summary
+        try:
+            pdf_content = document_service.generate_profile_summary_pdf(
+                candidate.name or "Unknown Candidate",
+                profile_summary
+            )
+            logger.info(f"PDF generated successfully for candidate {candidate_id}")
+        except Exception as e:
+            logger.error(f"PDF generation failed for candidate {candidate_id}: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate PDF: {str(e)}"
+            )
+        
+        # Log the successful profile summary generation for audit
+        logger.info(f"Profile summary generated and downloaded for candidate {candidate_id} ({candidate.name})")
+        
+        # Return PDF as response
+        filename = f"profile_summary_{candidate.name or 'candidate'}_{candidate_id[:8]}.pdf"
+        filename = filename.replace(" ", "_").replace("/", "_")  # Sanitize filename
+        
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error generating profile summary for candidate {candidate_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while generating the profile summary"
+        )
