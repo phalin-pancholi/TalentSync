@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, User, Mail, Phone, FileText, Search, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Mail, Phone, FileText, Search, Upload, FileUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -20,6 +20,14 @@ const Candidates = () => {
   const [uploading, setUploading] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Extra details upload state
+  const [showExtraDetailsDialog, setShowExtraDetailsDialog] = useState(false);
+  const [extraDetailsFile, setExtraDetailsFile] = useState(null);
+  const [uploadingExtraDetails, setUploadingExtraDetails] = useState(false);
+  const [selectedCandidateForDetails, setSelectedCandidateForDetails] = useState(null);
+  const [candidateExtraDetails, setCandidateExtraDetails] = useState({});
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,6 +43,25 @@ const Candidates = () => {
     try {
       const response = await axios.get(`${API}/candidates`);
       setCandidates(response.data);
+      
+      // Fetch extra details for all candidates
+      const extraDetailsPromises = response.data.map(async (candidate) => {
+        try {
+          const detailsResponse = await axios.get(`${API}/candidates/${candidate.id}/extra-details`);
+          return { candidateId: candidate.id, details: detailsResponse.data };
+        } catch (error) {
+          console.error(`Error fetching extra details for candidate ${candidate.id}:`, error);
+          return { candidateId: candidate.id, details: [] };
+        }
+      });
+      
+      const extraDetailsResults = await Promise.all(extraDetailsPromises);
+      const extraDetailsMap = {};
+      extraDetailsResults.forEach(result => {
+        extraDetailsMap[result.candidateId] = result.details;
+      });
+      setCandidateExtraDetails(extraDetailsMap);
+      
     } catch (error) {
       console.error('Error fetching candidates:', error);
       toast.error('Failed to fetch candidates');
@@ -151,11 +178,73 @@ const Candidates = () => {
       setUploadFile(null);
       fetchCandidates();
     } catch (error) {
-      console.error('Error uploading document:', error);
-      toast.error(error.response?.data?.detail || 'Failed to process document');
+      console.error('Upload error:', error);
+      toast.error('Upload failed: ' + (error.response?.data?.detail || error.message));
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleExtraDetailsUpload = async () => {
+    if (!extraDetailsFile) {
+      toast.error('Please select a file');
+      return;
+    }
+
+    if (!selectedCandidateForDetails) {
+      toast.error('No candidate selected');
+      return;
+    }
+
+    setUploadingExtraDetails(true);
+    const formData = new FormData();
+    formData.append('file', extraDetailsFile);
+
+    try {
+      const response = await axios.post(
+        `${API}/candidates/${selectedCandidateForDetails.id}/extra-details`, 
+        formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      toast.success('Extra details uploaded successfully!');
+      setShowExtraDetailsDialog(false);
+      setExtraDetailsFile(null);
+      setSelectedCandidateForDetails(null);
+      
+      // Refresh the extra details for this candidate
+      await fetchCandidateExtraDetails(selectedCandidateForDetails.id);
+      
+    } catch (error) {
+      console.error('Extra details upload error:', error);
+      const errorMessage = error.response?.data?.detail || error.message;
+      toast.error('Upload failed: ' + errorMessage);
+    } finally {
+      setUploadingExtraDetails(false);
+    }
+  };
+
+  const fetchCandidateExtraDetails = async (candidateId) => {
+    try {
+      const response = await axios.get(`${API}/candidates/${candidateId}/extra-details`);
+      setCandidateExtraDetails(prev => ({
+        ...prev,
+        [candidateId]: response.data
+      }));
+    } catch (error) {
+      console.error('Error fetching extra details:', error);
+    }
+  };
+
+  const openExtraDetailsDialog = (candidate) => {
+    setSelectedCandidateForDetails(candidate);
+    setShowExtraDetailsDialog(true);
+    // Fetch existing extra details for this candidate
+    fetchCandidateExtraDetails(candidate.id);
   };
 
   const filteredCandidates = candidates.filter(candidate =>
@@ -226,6 +315,77 @@ const Candidates = () => {
               </div>
             </DialogContent>
           </Dialog>
+          
+          {/* Extra Details Upload Dialog */}
+          <Dialog open={showExtraDetailsDialog} onOpenChange={setShowExtraDetailsDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  Upload Extra Details for {selectedCandidateForDetails?.name || 'Candidate'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select a document with extra details
+                  </label>
+                  <Input
+                    type="file"
+                    onChange={(e) => setExtraDetailsFile(e.target.files[0])}
+                    accept=".pdf,.txt"
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Supported formats: PDF, TXT (max 5MB)
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Upload documents containing interview feedback, new skills, work summaries, or other relevant details.
+                  </p>
+                </div>
+                
+                {/* Show existing extra details if any */}
+                {candidateExtraDetails[selectedCandidateForDetails?.id]?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Existing Extra Details:</h4>
+                    <div className="max-h-32 overflow-y-auto space-y-2">
+                      {candidateExtraDetails[selectedCandidateForDetails?.id]?.map((detail, index) => (
+                        <div key={detail.id} className="p-2 bg-gray-50 rounded text-sm">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs text-gray-500">
+                              {detail.type && <Badge variant="outline" className="mr-2">{detail.type}</Badge>}
+                              {new Date(detail.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-gray-700 truncate">{detail.text_content.substring(0, 100)}...</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleExtraDetailsUpload} 
+                    disabled={uploadingExtraDetails || !extraDetailsFile}
+                    className="flex items-center gap-2"
+                  >
+                    {uploadingExtraDetails ? 'Uploading...' : 'Upload Details'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowExtraDetailsDialog(false);
+                      setExtraDetailsFile(null);
+                      setSelectedCandidateForDetails(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
           <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Add Manually
@@ -325,6 +485,15 @@ const Candidates = () => {
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => openExtraDetailsDialog(candidate)}
+                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                    title="Upload Extra Details"
+                  >
+                    <FileUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => handleEdit(candidate)}
                     className="h-8 w-8 p-0"
                   >
@@ -386,6 +555,36 @@ const Candidates = () => {
                   <div className="text-sm text-gray-600">{candidate.education}</div>
                 </div>
               )}
+              
+              {/* Extra Details */}
+              {candidateExtraDetails[candidate.id]?.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-gray-700 mb-2">Extra Details:</div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {candidateExtraDetails[candidate.id].slice(0, 3).map((detail, index) => (
+                      <div key={detail.id} className="p-2 bg-gray-50 rounded text-xs">
+                        <div className="flex justify-between items-start mb-1">
+                          {detail.type && <Badge variant="outline" className="text-xs">{detail.type}</Badge>}
+                          <span className="text-xs text-gray-500">
+                            {new Date(detail.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 line-clamp-2">
+                          {detail.text_content.length > 100 
+                            ? detail.text_content.substring(0, 100) + '...' 
+                            : detail.text_content}
+                        </p>
+                      </div>
+                    ))}
+                    {candidateExtraDetails[candidate.id].length > 3 && (
+                      <div className="text-xs text-gray-500 text-center">
+                        +{candidateExtraDetails[candidate.id].length - 3} more details
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="text-xs text-gray-500 mt-3">
                 Created: {new Date(candidate.created_at).toLocaleDateString()}
               </div>
