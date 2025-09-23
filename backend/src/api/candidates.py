@@ -36,6 +36,8 @@ async def create_candidate(
     email: str = Form(...),
     phone: Optional[str] = Form(None),
     skills: str = Form(...),  # Comma-separated skills
+    location: Optional[str] = Form(None),  # Added location field
+    experience: Optional[str] = Form(None),  # Added experience field
     document: Optional[UploadFile] = File(None),
     candidate_service: CandidateService = Depends(lambda: CandidateService()),
     document_service: DocumentService = Depends(lambda: DocumentService())
@@ -49,7 +51,9 @@ async def create_candidate(
             name=name,
             email=email,
             phone=phone,
-            skills=skills_list
+            skills=skills_list,
+            location=location,
+            experience=experience
         )
         
         # Create candidate first
@@ -133,7 +137,7 @@ async def delete_candidate(
     if not success:
         raise HTTPException(status_code=404, detail="Candidate not found")
     
-    return JSONResponse(status_code=204, content={"message": "Candidate deleted successfully"})
+    return Response(status_code=204)
 
 
 @router.post("/{candidate_id}/extra-details", response_model=CandidateExtraDetailResponse)

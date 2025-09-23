@@ -69,6 +69,7 @@ class CandidateBase(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     skills: Optional[List[str]] = None  # Made optional to allow missing fields
     experience: Optional[str] = None
+    location: Optional[str] = None  # Added location field
     education: Optional[str] = None
     summary: Optional[str] = None
 
@@ -89,6 +90,7 @@ class CandidateUpdate(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=20)
     skills: Optional[List[str]] = None
+    location: Optional[str] = None  # Added location field
 
     @field_validator('skills')
     @classmethod
@@ -145,6 +147,7 @@ class CandidateLLMCreate(BaseModel):
     phone: Optional[str] = None
     skills: Optional[List[str]] = None
     experience: Optional[str] = None
+    location: Optional[str] = None  # Added location field
     education: Optional[str] = None
     summary: Optional[str] = None
 
@@ -157,6 +160,7 @@ class CandidateResponse(BaseModel):
     phone: Optional[str] = None
     skills: Optional[List[str]] = None
     experience: Optional[str] = None
+    location: Optional[str] = None  # Added location field
     education: Optional[str] = None
     summary: Optional[str] = None
     created_at: datetime

@@ -45,6 +45,7 @@ const CandidateList = ({
           name: candidate.name,
           skills: candidate.skills || [],
           experience: candidate.experience,
+          location: candidate.location,  // Added location field
           otherDetails: {
             ...(candidate.email && { email: candidate.email }),
             ...(candidate.phone && { phone: candidate.phone }),

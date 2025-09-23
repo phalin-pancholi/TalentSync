@@ -136,7 +136,8 @@ Extract candidate information from the following resume/CV text and return it as
 - email: Email address (string or null)
 - phone: Phone number (string or null)
 - skills: Skills and technologies as an array of strings (array or null)
-- experience: Work experience summary (string or null)
+- experience: Work experience summary or years of experience (string or null)
+- location: Current location, preferred location, or address (string or null)
 - education: Educational background (string or null)
 - summary: Professional summary or objective (string or null)
 
@@ -144,9 +145,10 @@ Rules:
 1. Only extract information that is explicitly mentioned in the text
 2. If a field is not mentioned or unclear, set it to null
 3. For skills, extract individual skills and technologies as separate array items
-4. For experience, provide a brief summary of work history
-5. For education, include degrees, institutions, and relevant details
-6. Return ONLY valid JSON, no additional text
+4. For experience, provide a brief summary of work history or years (e.g., "5 years", "Senior Developer with 3+ years")
+5. For location, extract city, state/country, or any location mentioned (e.g., "San Francisco, CA", "Remote", "Willing to relocate")
+6. For education, include degrees, institutions, and relevant details
+7. Return ONLY valid JSON, no additional text
 
 Resume/CV Text:
 {text_content}
@@ -174,7 +176,7 @@ JSON Response:
             candidate_data = json.loads(response_content)
             
             # Ensure all expected fields exist with None as default
-            expected_fields = ['name', 'email', 'phone', 'skills', 'experience', 'education', 'summary']
+            expected_fields = ['name', 'email', 'phone', 'skills', 'experience', 'location', 'education', 'summary']
             for field in expected_fields:
                 if field not in candidate_data:
                     candidate_data[field] = None
@@ -197,6 +199,7 @@ JSON Response:
                 'phone': None,
                 'skills': None,
                 'experience': None,
+                'location': None,  # Added location field
                 'education': None,
                 'summary': text_content[:200] if text_content else None  # Fallback to truncated text
             }

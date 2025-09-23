@@ -7,6 +7,7 @@ describe('CandidateCard', () => {
     name: 'Jane Doe',
     skills: ['React', 'Python'],
     experience: '5 years',
+    location: 'San Francisco, CA',
     otherDetails: { email: 'jane@example.com', phone: '123-456-7890' }
   };
 
@@ -15,6 +16,7 @@ describe('CandidateCard', () => {
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
     expect(screen.getByText('React, Python')).toBeInTheDocument();
     expect(screen.getByText('5 years')).toBeInTheDocument();
+    expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /show all details/i })).toBeInTheDocument();
   });
 
@@ -36,7 +38,7 @@ describe('CandidateCard', () => {
     render(<CandidateCard candidate={incompleteCandidate} />);
     expect(screen.getByText('John')).toBeInTheDocument();
     expect(screen.getByText(/no skills listed/i)).toBeInTheDocument();
-    expect(screen.getByText(/no experience listed/i)).toBeInTheDocument();
+    expect(screen.getByText(/not provided/i)).toBeInTheDocument(); // For experience and location
   });
 
   it('truncates long lists with ellipsis', () => {
@@ -50,6 +52,19 @@ describe('CandidateCard', () => {
     render(<CandidateCard candidate={minimalCandidate} />);
     const button = screen.getByRole('button', { name: /show all details/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveAccessibleName();
+    expect(button).toHaveAttribute('type', 'button');
+  });
+
+  it('displays location correctly when provided', () => {
+    render(<CandidateCard candidate={minimalCandidate} />);
+    expect(screen.getByText('Location:')).toBeInTheDocument();
+    expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
+  });
+
+  it('shows "Not provided" for missing location', () => {
+    const candidateWithoutLocation = { ...minimalCandidate, location: undefined };
+    render(<CandidateCard candidate={candidateWithoutLocation} />);
+    expect(screen.getByText('Location:')).toBeInTheDocument();
+    expect(screen.getByText('Not provided')).toBeInTheDocument();
   });
 });

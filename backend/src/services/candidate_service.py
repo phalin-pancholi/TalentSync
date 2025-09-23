@@ -207,6 +207,7 @@ class CandidateService:
             phone=candidate.phone,
             skills=candidate.skills,
             experience=getattr(candidate, 'experience', None),
+            location=getattr(candidate, 'location', None),  # Added location field
             education=getattr(candidate, 'education', None),
             summary=getattr(candidate, 'summary', None),
             created_at=candidate.created_at,
