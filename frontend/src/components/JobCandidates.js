@@ -177,10 +177,10 @@ const JobCandidates = () => {
                     <MapPin className="w-4 h-4" />
                     <span>{candidate.location}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  {/* <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Briefcase className="w-4 h-4" />
                     <span>{candidate.experience_years} years experience</span>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Match Progress */}
