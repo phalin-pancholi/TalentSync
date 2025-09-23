@@ -2,6 +2,7 @@
 Job API routes for TalentSync backend
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import Response
 from typing import List
 import logging
 
@@ -51,7 +52,7 @@ async def delete_job(job_id: str):
     success = await job_service.delete_job(job_id)
     if not success:
         raise HTTPException(status_code=404, detail="Job not found")
-    return {"message": "Job deleted successfully"}
+    return Response(status_code=204)
 
 
 @router.post("/upload", response_model=JobPosting)

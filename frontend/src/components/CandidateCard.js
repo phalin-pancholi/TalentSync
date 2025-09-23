@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, User, Mail, Phone, Briefcase, GraduationCap, Calendar, FileText } from 'lucide-react';
+import { Eye, User, Mail, Phone, Briefcase, GraduationCap, Calendar, FileText, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -13,7 +13,7 @@ const CandidateCard = ({ candidate }) => {
     );
   }
 
-  const { name, skills = [], experience } = candidate;
+  const { name, skills = [], experience, location } = candidate;
   const hasOtherDetails = candidate.otherDetails && Object.keys(candidate.otherDetails).length > 0;
 
   // Helper function to truncate long skill lists
@@ -37,9 +37,16 @@ const CandidateCard = ({ candidate }) => {
 
   const renderExperience = (exp) => {
     if (!exp || exp === '') {
-      return <span className="text-muted-foreground italic">No experience listed</span>;
+      return <span className="text-muted-foreground italic">Not provided</span>;
     }
     return exp;
+  };
+
+  const renderLocation = (loc) => {
+    if (!loc || loc === '') {
+      return <span className="text-muted-foreground italic">Not provided</span>;
+    }
+    return loc;
   };
 
   const renderAllSkills = (skillsList) => {
@@ -78,6 +85,13 @@ const CandidateCard = ({ candidate }) => {
             <span className="text-sm font-medium text-muted-foreground">Experience: </span>
             <span className="text-sm text-foreground">
               {renderExperience(experience)}
+            </span>
+          </div>
+
+          <div>
+            <span className="text-sm font-medium text-muted-foreground">Location: </span>
+            <span className="text-sm text-foreground">
+              {renderLocation(location)}
             </span>
           </div>
         </div>
@@ -122,6 +136,16 @@ const CandidateCard = ({ candidate }) => {
                       </h4>
                       <p className="text-sm text-foreground">
                         {renderExperience(experience)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Location
+                      </h4>
+                      <p className="text-sm text-foreground">
+                        {renderLocation(location)}
                       </p>
                     </div>
                   </div>

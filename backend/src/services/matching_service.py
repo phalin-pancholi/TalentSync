@@ -15,7 +15,7 @@ class MatchingService:
         self.candidate_service = CandidateService()
     
     async def get_candidates_for_job(self, job: JobPosting) -> List[Candidate]:
-        """Get candidates matching a job posting"""
+        """Get candidates matching a job posting with minimum 20% match score"""
         # Get all candidates from database
         all_candidates = await self.candidate_service.get_candidates(skip=0, limit=1000)
         
@@ -27,10 +27,12 @@ class MatchingService:
             matched_skills = list(job_skills.intersection(candidate_skills))
             match_percentage = (len(matched_skills) / len(job_skills)) * 100 if job_skills else 0
             
-            # Update candidate with match information
-            candidate.match_percentage = round(match_percentage, 1)
-            candidate.matched_skills = matched_skills
-            candidates_with_match.append(candidate)
+            # Only include candidates with match percentage > 20%
+            if match_percentage > 20:
+                # Update candidate with match information
+                candidate.match_percentage = round(match_percentage, 1)
+                candidate.matched_skills = matched_skills
+                candidates_with_match.append(candidate)
         
         # Sort by match percentage (highest first)
         candidates_with_match.sort(key=lambda x: x.match_percentage, reverse=True)

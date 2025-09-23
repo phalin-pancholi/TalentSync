@@ -2,7 +2,7 @@
 Document API endpoints for TalentSync backend
 """
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from ..models.document import DocumentResponse
 from ..services.document_service import DocumentService
@@ -52,4 +52,4 @@ async def delete_document(
     if not success:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    return {"message": "Document deleted successfully"}
+    return Response(status_code=204)

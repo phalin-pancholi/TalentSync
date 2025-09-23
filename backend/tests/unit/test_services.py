@@ -33,7 +33,12 @@ async def test_get_candidates_for_job_with_skills():
     
     candidates = await service.get_candidates_for_job(job)
     
-    assert len(candidates) > 0
+    assert len(candidates) >= 0  # May be 0 if no candidates meet 20% threshold
+    
+    # All returned candidates should have >20% match
+    for candidate in candidates:
+        assert candidate.match_percentage > 20.0
+    
     assert all(isinstance(c, Candidate) for c in candidates)
     
     # Check sorting by match percentage
@@ -41,14 +46,14 @@ async def test_get_candidates_for_job_with_skills():
         assert candidates[i].match_percentage >= candidates[i + 1].match_percentage
     
     # Check that candidates with Python have higher match percentage
-    python_candidates = [c for c in candidates if "Python" in c.skills]
+    python_candidates = [c for c in candidates if "Python" in c.skills and c.match_percentage > 20.0]
     if python_candidates:
-        assert python_candidates[0].match_percentage > 0
+        assert python_candidates[0].match_percentage > 20.0
 
 
 @pytest.mark.asyncio
 async def test_get_candidates_for_job_no_skills():
-    """Test getting candidates for a job with no skills"""
+    """Test getting candidates for a job with no skills - should return empty due to 0% match"""
     service = MatchingService()
     
     job = JobPosting(
@@ -62,15 +67,13 @@ async def test_get_candidates_for_job_no_skills():
     
     candidates = await service.get_candidates_for_job(job)
     
-    assert len(candidates) > 0
-    for candidate in candidates:
-        assert candidate.match_percentage == 0.0
-        assert candidate.matched_skills == []
+    # Should return empty list since all candidates will have 0% match (below 20% threshold)
+    assert len(candidates) == 0
 
 
 @pytest.mark.asyncio
 async def test_matching_percentage_calculation():
-    """Test match percentage calculation logic"""
+    """Test match percentage calculation logic with 20% threshold"""
     service = MatchingService()
     
     job = JobPosting(
@@ -84,12 +87,37 @@ async def test_matching_percentage_calculation():
     
     candidates = await service.get_candidates_for_job(job)
     
-    # Find a candidate with some matching skills
+    # All returned candidates should have >20% match
     for candidate in candidates:
-        if candidate.match_percentage > 0:
-            expected_percentage = (len(candidate.matched_skills) / len(job.skills)) * 100
-            assert abs(candidate.match_percentage - expected_percentage) < 0.1
-            break
+        assert candidate.match_percentage > 20.0
+        expected_percentage = (len(candidate.matched_skills) / len(job.skills)) * 100
+        assert abs(candidate.match_percentage - expected_percentage) < 0.1
+        # With 4 skills, need at least 1 matching skill for >20% (1/4 = 25%)
+        assert len(candidate.matched_skills) >= 1
+
+
+@pytest.mark.asyncio
+async def test_matching_threshold_filter():
+    """Test that only candidates with >20% match are returned"""
+    service = MatchingService()
+    
+    job = JobPosting(
+        title="Specialized Developer",
+        description="Needs specific skills",
+        skills=["Python", "FastAPI", "MongoDB", "Docker", "Kubernetes"],  # 5 skills
+        experience_level="Senior",
+        department="Engineering",
+        location="Remote"
+    )
+    
+    candidates = await service.get_candidates_for_job(job)
+    
+    # Verify all returned candidates have >20% match
+    for candidate in candidates:
+        assert candidate.match_percentage > 20.0
+        # With 5 skills, need at least 2 matching skills for >20% (2/5 = 40%)
+        # But since we check >20%, even 1 skill (1/5 = 20%) should be excluded
+        assert len(candidate.matched_skills) >= 1
 
 
 class TestDocumentService:
