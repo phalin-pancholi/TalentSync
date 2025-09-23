@@ -7,6 +7,7 @@ import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { toast } from 'sonner';
 import axios from 'axios';
+import CandidateList from './CandidateList';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const API = `${BACKEND_URL}/api`;
@@ -535,160 +536,17 @@ const Candidates = () => {
       )}
 
       {/* Candidates List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCandidates.map((candidate) => (
-          <Card key={candidate.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="h-5 w-5 text-blue-600" />
-                  {candidate.name || 'Unnamed Candidate'}
-                </CardTitle>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => generateProfileSummary(candidate)}
-                    disabled={generatingProfileSummary[candidate.id]}
-                    className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700"
-                    title="Generate Profile Summary PDF"
-                  >
-                    {generatingProfileSummary[candidate.id] ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => openExtraDetailsDialog(candidate)}
-                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                    title="Upload Extra Details"
-                  >
-                    <FileUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleEdit(candidate)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(candidate.id)}
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {candidate.email && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="h-4 w-4" />
-                  {candidate.email}
-                </div>
-              )}
-              {candidate.phone && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Phone className="h-4 w-4" />
-                  {candidate.phone}
-                </div>
-              )}
-              {(candidate.document_id || candidate.raw_text) && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <FileText className="h-4 w-4" />
-                  Resume uploaded
-                </div>
-              )}
-              {candidate.skills && candidate.skills.length > 0 ? (
-                <div>
-                  <div className="text-sm font-medium text-gray-700 mb-2">Skills:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {candidate.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 italic">No skills listed</div>
-              )}
-              {candidate.experience && (
-                <div>
-                  <div className="text-sm font-medium text-gray-700 mb-1">Experience:</div>
-                  <div className="text-sm text-gray-600">{candidate.experience}</div>
-                </div>
-              )}
-              {candidate.education && (
-                <div>
-                  <div className="text-sm font-medium text-gray-700 mb-1">Education:</div>
-                  <div className="text-sm text-gray-600">{candidate.education}</div>
-                </div>
-              )}
-              
-              {/* Extra Details */}
-              {candidateExtraDetails[candidate.id]?.length > 0 && (
-                <div>
-                  <div className="text-sm font-medium text-gray-700 mb-2">Extra Details:</div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {candidateExtraDetails[candidate.id].slice(0, 3).map((detail, index) => (
-                      <div key={detail.id} className="p-2 bg-gray-50 rounded text-xs">
-                        <div className="flex justify-between items-start mb-1">
-                          {detail.type && <Badge variant="outline" className="text-xs">{detail.type}</Badge>}
-                          <span className="text-xs text-gray-500">
-                            {new Date(detail.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 line-clamp-2">
-                          {detail.text_content.length > 100 
-                            ? detail.text_content.substring(0, 100) + '...' 
-                            : detail.text_content}
-                        </p>
-                      </div>
-                    ))}
-                    {candidateExtraDetails[candidate.id].length > 3 && (
-                      <div className="text-xs text-gray-500 text-center">
-                        +{candidateExtraDetails[candidate.id].length - 3} more details
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              <div className="text-xs text-gray-500 mt-3">
-                Created: {new Date(candidate.created_at).toLocaleDateString()}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredCandidates.length === 0 && (
-        <div className="text-center py-12">
-          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchTerm ? 'No candidates found' : 'No candidates yet'}
-          </h3>
-          <p className="text-gray-500 mb-4">
-            {searchTerm 
-              ? 'Try adjusting your search terms' 
-              : 'Get started by adding your first candidate'
-            }
-          </p>
-          {!searchTerm && (
-            <Button onClick={() => setShowCreateForm(true)}>
-              Add First Candidate
-            </Button>
-          )}
-        </div>
-      )}
+      <CandidateList 
+        candidates={filteredCandidates}
+        candidateExtraDetails={candidateExtraDetails}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onGenerateProfileSummary={generateProfileSummary}
+        onOpenExtraDetailsDialog={openExtraDetailsDialog}
+        generatingProfileSummary={generatingProfileSummary}
+        searchTerm={searchTerm}
+        onAddFirst={() => setShowCreateForm(true)}
+      />
     </div>
   );
 };
