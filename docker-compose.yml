@@ -83,7 +83,7 @@ services:
     restart: always
     environment:
       - ZOHO_ACCESS_TOKEN=${ZOHO_ACCESS_TOKEN}
-      - SYNC_INTERVAL=5
+      - SYNC_INTERVAL=${ZOHO_SYNC_INTERVAL:-3600}  # Default to 1 hour if not set
       - MONGO_URL=mongodb://admin:password123@mongodb:27017/talentsync_db?authSource=admin
       - DB_NAME=talentsync_db
       - BACKEND_URL=http://backend:8001

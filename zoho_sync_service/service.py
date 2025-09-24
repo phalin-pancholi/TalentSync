@@ -118,17 +118,22 @@ class ZohoSyncService:
     async def store_employee(self, employee_data: Dict[str, Any]) -> EmployeeRecord:
         """Store employee record in database"""
         try:
-            # Extract key fields with defaults
-            employee_id = employee_data.get("Employeeid", "")
-            name = f"{employee_data.get('Firstname', '')} {employee_data.get('Lastname', '')}".strip()
+            # Extract key fields with defaults - handle Zoho API field names
+            employee_id = employee_data.get("Employee ID", employee_data.get("Employeeid", ""))
+            
+            # Handle name fields - try different field name variations
+            first_name = employee_data.get("First Name", employee_data.get("Firstname", ""))
+            last_name = employee_data.get("Last Name", employee_data.get("Lastname", ""))
+            name = f"{first_name} {last_name}".strip()
+            
             job_title = employee_data.get("Designation", "")
             department = employee_data.get("Department", "")
             
-            # Extract contact info
+            # Extract contact info with proper field names
             contact_info = {
-                "email": employee_data.get("Emailid", ""),
-                "phone": employee_data.get("Mobile", ""),
-                "address": employee_data.get("Address", "")
+                "email": employee_data.get("Email address", employee_data.get("Emailid", "")),
+                "phone": employee_data.get("Personal Mobile Number", employee_data.get("Mobile", "")),
+                "address": employee_data.get("Present Address", employee_data.get("Address", ""))
             }
             
             employee_record = EmployeeRecord(
@@ -156,34 +161,48 @@ class ZohoSyncService:
             return employee_record
             
         except Exception as e:
-            logger.error(f"Failed to store employee {employee_data.get('Employeeid', 'unknown')}: {e}")
+            logger.error(f"Failed to store employee {employee_data.get('Employee ID', employee_data.get('Employeeid', 'unknown'))}: {e}")
             raise
 
     async def generate_candidate_details_with_llm(self, employee_record: EmployeeRecord) -> CandidateDetails:
         """Generate candidate details using LLM"""
         try:
-            # Prepare prompt with employee data
+            # Extract additional experience-related fields from Zoho data
+            all_fields = employee_record.all_other_fields
+            current_experience = all_fields.get("Current Experience", "")
+            expertise = all_fields.get("Ask me about/Expertise", "")
+            about_me = all_fields.get("About Me", "")
+            date_of_joining = all_fields.get("Date of Joining", "")
+            employment_type = all_fields.get("Employment Type", "")
+            
+            # Prepare comprehensive prompt with employee data
             employee_data_str = f"""
             Employee Information:
             - Name: {employee_record.name}
             - Job Title: {employee_record.job_title}
             - Department: {employee_record.department}
+            - Current Experience: {current_experience}
+            - Date of Joining: {date_of_joining}
+            - Employment Type: {employment_type}
+            - Expertise/Skills: {expertise}
+            - About Me: {about_me}
             - Contact: {employee_record.contact_info}
             """
             
             prompt = f"""
-            Based on the following employee information, generate a comprehensive candidate profile for talent management:
+            Based on the following employee information from Zoho People, generate a comprehensive candidate profile for talent management:
             
             {employee_data_str}
             
             Please provide a response in the following JSON format (respond only with valid JSON, no additional text):
             {{
-                "profile": "A professional profile summary in 2-3 sentences",
-                "skills": "Comma-separated list of relevant skills",
-                "experience": "Experience summary in 2-3 sentences",
-                "summary": "Overall candidate summary in 3-4 sentences"
+                "profile": "A professional profile summary in 2-3 sentences based on their role, experience, and expertise",
+                "skills": "Comma-separated list of relevant skills based on job title, expertise field, and experience",
+                "experience": "Experience summary based on Current Experience, Date of Joining, and job history - be specific about years and roles",
+                "summary": "Overall candidate summary in 3-4 sentences incorporating their experience level, skills, and career progression"
             }}
             
+            Make sure to use the actual experience data provided (Current Experience: {current_experience}) and be specific about their tenure and expertise.
             Make sure your response is valid JSON only.
             """
             
@@ -224,6 +243,9 @@ class ZohoSyncService:
                 candidate_details = CandidateDetails(
                     candidate_id=f"cand_{employee_record.employee_id}",
                     employee_id=employee_record.employee_id,
+                    name=employee_record.name,
+                    email=employee_record.contact_info.get("email") if employee_record.contact_info.get("email") else f"employee_{employee_record.employee_id}@company.internal",
+                    location=employee_record.contact_info.get("address", "Not specified"),
                     profile=parsed_response.get("profile", ""),
                     skills=skills_list,
                     experience=parsed_response.get("experience", ""),
@@ -235,11 +257,37 @@ class ZohoSyncService:
                 logger.warning(f"Failed to parse LLM JSON response for {employee_record.employee_id}, using fallback format: {e}")
                 logger.warning(f"Raw LLM response was: {content}")
                 
-                # Enhanced fallback: try to extract information from non-JSON response
+                # Enhanced fallback: use actual Zoho experience data
+                all_fields = employee_record.all_other_fields
+                current_experience = all_fields.get("Current Experience", "")
+                date_of_joining = all_fields.get("Date of Joining", "")
+                expertise = all_fields.get("Ask me about/Expertise", "")
+                
                 profile = f"Professional with experience in {employee_record.job_title} role"
                 skills = [employee_record.job_title, employee_record.department] if employee_record.job_title else []
-                experience = f"Experience in {employee_record.department} department" if employee_record.department else "Professional experience"
-                summary = f"{employee_record.name} is a {employee_record.job_title} with experience in {employee_record.department}" if employee_record.job_title else f"{employee_record.name} is a professional employee"
+                
+                # Add expertise skills if available
+                if expertise:
+                    expertise_skills = [skill.strip() for skill in expertise.split(",") if skill.strip()]
+                    skills.extend(expertise_skills[:5])  # Limit to 5 additional skills
+                
+                # Use actual experience data if available
+                if current_experience:
+                    experience = f"Has {current_experience} of professional experience"
+                    if date_of_joining:
+                        experience += f", joined company on {date_of_joining}"
+                    if employee_record.department:
+                        experience += f" in {employee_record.department} department"
+                else:
+                    experience = f"Experience in {employee_record.department} department" if employee_record.department else "Professional experience"
+                
+                summary = f"{employee_record.name} is a {employee_record.job_title}"
+                if current_experience:
+                    summary += f" with {current_experience} of experience"
+                if employee_record.department:
+                    summary += f" in {employee_record.department}"
+                if not summary.endswith("."):
+                    summary += "."
                 
                 # Try to extract some info from the raw response if available
                 if content:
@@ -255,6 +303,9 @@ class ZohoSyncService:
                 candidate_details = CandidateDetails(
                     candidate_id=f"cand_{employee_record.employee_id}",
                     employee_id=employee_record.employee_id,
+                    name=employee_record.name,
+                    email=employee_record.contact_info.get("email") if employee_record.contact_info.get("email") else f"employee_{employee_record.employee_id}@company.internal",
+                    location=employee_record.contact_info.get("address", "Not specified"),
                     profile=profile,
                     skills=skills,
                     experience=experience,
@@ -267,21 +318,31 @@ class ZohoSyncService:
             
         except Exception as e:
             logger.error(f"Failed to generate candidate details for employee {employee_record.employee_id}: {e}")
-            # Create basic candidate details as fallback
+            # Create basic candidate details as fallback using actual Zoho data
+            all_fields = employee_record.all_other_fields
+            current_experience = all_fields.get("Current Experience", "")
+            
+            experience_text = "Experience information unavailable"
+            if current_experience:
+                experience_text = f"Has {current_experience} of professional experience"
+            
             return CandidateDetails(
                 candidate_id=f"cand_{employee_record.employee_id}",
                 employee_id=employee_record.employee_id,
+                name=employee_record.name,
+                email=employee_record.contact_info.get("email") if employee_record.contact_info.get("email") else f"employee_{employee_record.employee_id}@company.internal",
+                location=employee_record.contact_info.get("address", "Not specified"),
                 profile=f"Employee: {employee_record.name}",
                 skills=[employee_record.job_title] if employee_record.job_title else [],
-                experience="Experience information unavailable",
-                summary=f"Basic profile for {employee_record.name}",
+                experience=experience_text,
+                summary=f"Basic profile for {employee_record.name}" + (f" with {current_experience} experience" if current_experience else ""),
                 generated_at=datetime.utcnow()
             )
 
     async def store_candidate_details(self, candidate_details: CandidateDetails) -> bool:
         """Store candidate details if not already exists"""
         try:
-            # Check if candidate already exists
+            # Check if candidate already exists by employee_id
             existing = await self.candidates_collection.find_one(
                 {"employee_id": candidate_details.employee_id}
             )
@@ -289,6 +350,16 @@ class ZohoSyncService:
             if existing:
                 logger.info(f"Candidate details already exist for employee: {candidate_details.employee_id}")
                 return False
+            
+            # Check if email already exists (if email is provided and not a generated internal email)
+            if candidate_details.email and not candidate_details.email.endswith("@company.internal"):
+                existing_email = await self.candidates_collection.find_one(
+                    {"email": candidate_details.email}
+                )
+                if existing_email:
+                    logger.warning(f"Candidate with email {candidate_details.email} already exists, updating employee_id reference")
+                    # Update existing record to include this employee_id in some way, or skip
+                    return False
             
             # Insert new candidate details
             result = await self.candidates_collection.insert_one(
@@ -299,6 +370,10 @@ class ZohoSyncService:
             return True
             
         except Exception as e:
+            # Handle duplicate key error specifically
+            if "E11000" in str(e) and "email" in str(e):
+                logger.warning(f"Duplicate email constraint violated for employee {candidate_details.employee_id}, skipping")
+                return False
             logger.error(f"Failed to store candidate details for employee {candidate_details.employee_id}: {e}")
             return False
 
