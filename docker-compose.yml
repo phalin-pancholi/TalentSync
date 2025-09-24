@@ -74,6 +74,31 @@ services:
       - /app/node_modules  # Exclude node_modules from volume mount
     command: ["yarn", "start"]
 
+  # Zoho Sync Service
+  zoho-sync-service:
+    build:
+      context: ./zoho_sync_service
+      dockerfile: Dockerfile
+    container_name: talentsync-zoho-sync
+    restart: always
+    environment:
+      - ZOHO_ACCESS_TOKEN=${ZOHO_ACCESS_TOKEN}
+      - SYNC_INTERVAL=${ZOHO_SYNC_INTERVAL:-3600}  # Default to 1 hour if not set
+      - MONGO_URL=mongodb://admin:password123@mongodb:27017/talentsync_db?authSource=admin
+      - DB_NAME=talentsync_db
+      - BACKEND_URL=http://backend:8001
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    ports:
+      - "8002:8002"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - talentsync-network
+    volumes:
+      - ./zoho_sync_service:/app
+    command: ["python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
+
   # Backend Tests
   backend-tests:
     build:
