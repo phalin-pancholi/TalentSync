@@ -58,16 +58,14 @@ def test_candidate_creation():
         "name": "John Doe",
         "email": "john@example.com",
         "skills": ["Python", "JavaScript"],
-        "experience_years": 5,
-        "current_role": "Developer",
-        "department": "Engineering",
+        "experience": "5 years",
         "location": "New York"
     }
     
     candidate = Candidate(**candidate_data)
     assert candidate.name == "John Doe"
     assert candidate.skills == ["Python", "JavaScript"]
-    assert candidate.experience_years == 5
+    assert candidate.experience == "5 years"
     assert candidate.id is not None
     assert candidate.match_percentage == 0.0
     assert candidate.matched_skills == []

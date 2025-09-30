@@ -9,7 +9,7 @@ def test_get_document():
     # First create a candidate with a document
     with open("tests/data/sample_job.pdf", "rb") as f:
         create_response = client.post(
-            "/candidates",
+            "/api/candidates/",
             data={"name": "Test User", "email": "testdoc@example.com", "skills": "Testing"},
             files={"document": ("test_resume.pdf", f, "application/pdf")}
         )
@@ -18,12 +18,12 @@ def test_get_document():
     
     # Get the document if document_id is provided
     if "document_id" in candidate_data:
-        response = client.get(f"/documents/{candidate_data['document_id']}")
+        response = client.get(f"/api/documents/{candidate_data['document_id']}")
         assert response.status_code == 200
         assert response.json()["file_name"] == "test_resume.pdf"
 
 def test_get_document_not_found():
-    response = client.get("/documents/nonexistent")
+    response = client.get("/api/documents/nonexistent")
     assert response.status_code == 404
 
 @patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
@@ -60,7 +60,7 @@ Developed multiple web applications using modern frontend technologies.
     
     # First create a test candidate
     create_response = client.post(
-        "/candidates",
+        "/api/candidates/",
         json={
             "name": "John Doe",
             "email": "john.doe@example.com", 
@@ -74,7 +74,7 @@ Developed multiple web applications using modern frontend technologies.
     candidate_id = candidate_data["id"]
     
     # Test the profile summary generation endpoint
-    response = client.post(f"/candidates/{candidate_id}/profile-summary")
+    response = client.post(f"/api/candidates/{candidate_id}/profile-summary")
     
     # Verify the response structure and content
     assert response.status_code == 200
@@ -95,7 +95,7 @@ def test_generate_profile_summary_with_feedback_contract(mock_generate_summary):
     
     # Create a test candidate with extra details (feedback)
     create_response = client.post(
-        "/candidates",
+        "/api/candidates/",
         json={
             "name": "Jane Smith",
             "email": "jane.smith@example.com",
@@ -108,7 +108,7 @@ def test_generate_profile_summary_with_feedback_contract(mock_generate_summary):
     
     # Add feedback/extra details
     feedback_response = client.post(
-        f"/candidates/{candidate_id}/extra-details",
+        f"/api/candidates/{candidate_id}/extra-details",
         json={
             "text_content": "Excellent problem-solving skills and great team player",
             "type": "feedback"
@@ -117,7 +117,7 @@ def test_generate_profile_summary_with_feedback_contract(mock_generate_summary):
     assert feedback_response.status_code == 201
     
     # Test profile summary generation
-    response = client.post(f"/candidates/{candidate_id}/profile-summary")
+    response = client.post(f"/api/candidates/{candidate_id}/profile-summary")
     
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
@@ -134,7 +134,7 @@ def test_generate_profile_summary_with_feedback_contract(mock_generate_summary):
 
 def test_generate_profile_summary_candidate_not_found():
     """Test profile summary generation for non-existent candidate"""
-    response = client.post("/candidates/nonexistent_id/profile-summary")
+    response = client.post("/api/candidates/nonexistent_id/profile-summary")
     assert response.status_code == 404
 
 @patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
@@ -145,7 +145,7 @@ def test_generate_profile_summary_llm_error_contract(mock_generate_summary):
     
     # Create a test candidate
     create_response = client.post(
-        "/candidates",
+        "/api/candidates/",
         json={"name": "Error Test", "email": "error@example.com"}
     )
     assert create_response.status_code == 201
@@ -153,7 +153,7 @@ def test_generate_profile_summary_llm_error_contract(mock_generate_summary):
     candidate_id = candidate_data["id"]
     
     # Test error handling
-    response = client.post(f"/candidates/{candidate_id}/profile-summary")
+    response = client.post(f"/api/candidates/{candidate_id}/profile-summary")
     assert response.status_code == 500
     error_data = response.json()
     assert "error" in error_data or "detail" in error_data

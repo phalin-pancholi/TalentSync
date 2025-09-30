@@ -14,7 +14,7 @@ async def test_file_upload_creates_job():
     # Simulate PDF upload
     files = {"file": ("job_description.pdf", b"dummy pdf content", "application/pdf")}
     
-    response = client.post("/api/upload/job", files=files)
+    response = client.post("/api/jobs/upload", files=files)
     assert response.status_code == 200
     
     job_data = response.json()
@@ -36,7 +36,7 @@ async def test_file_upload_word_document():
     """Test uploading a Word document"""
     files = {"file": ("job_posting.docx", b"dummy docx content", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     
-    response = client.post("/api/upload/job", files=files)
+    response = client.post("/api/jobs/upload", files=files)
     assert response.status_code == 200
     
     job_data = response.json()
@@ -48,7 +48,7 @@ async def test_file_upload_invalid_file_type():
     """Test that invalid file types are rejected"""
     files = {"file": ("document.txt", b"text content", "text/plain")}
     
-    response = client.post("/api/upload/job", files=files)
+    response = client.post("/api/jobs/upload", files=files)
     assert response.status_code == 400
     assert "Only PDF and Word documents are allowed" in response.json()["detail"]
 
@@ -58,7 +58,7 @@ async def test_uploaded_job_can_match_candidates():
     """Test that jobs created from uploads can match candidates"""
     # Upload a file to create a job
     files = {"file": ("python_job.pdf", b"dummy content", "application/pdf")}
-    upload_response = client.post("/api/upload/job", files=files)
+    upload_response = client.post("/api/jobs/upload", files=files)
     assert upload_response.status_code == 200
     
     job_id = upload_response.json()["id"]

@@ -25,7 +25,7 @@ async def test_end_to_end_job_upload_and_storage():
     # Upload file via API
     with open(txt_path, "rb") as f:
         response = client.post(
-            "/api/jobs/upload_llm", 
+            "/api/jobs/upload", 
             files={"file": ("sample_job.txt", f, "text/plain")}
         )
     
@@ -154,14 +154,14 @@ async def test_error_handling_integration():
     
     # Test with completely empty file
     response = client.post(
-        "/api/jobs/upload_llm", 
+        "/api/jobs/upload", 
         files={"file": ("empty.txt", b"", "text/plain")}
     )
     assert response.status_code == 400
     
     # Test with file containing only whitespace
     response = client.post(
-        "/api/jobs/upload_llm", 
+        "/api/jobs/upload", 
         files={"file": ("whitespace.txt", b"   \n\t  ", "text/plain")}
     )
     assert response.status_code == 400

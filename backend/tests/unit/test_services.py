@@ -4,6 +4,7 @@ Unit tests for services
 import pytest
 from unittest.mock import AsyncMock, patch, Mock
 from src.services.matching_service import MatchingService
+from src.services.candidate_service import CandidateService
 from src.services.document_service import DocumentService
 from src.models.job_posting import JobPosting
 from src.models.candidate import Candidate
@@ -13,8 +14,8 @@ from src.models.candidate import Candidate
 async def test_matching_service_initialization():
     """Test MatchingService initialization"""
     service = MatchingService()
-    assert service.dummy_candidates is not None
-    assert len(service.dummy_candidates) > 0
+    assert service.candidate_service is not None
+    assert isinstance(service.candidate_service, CandidateService)
 
 
 @pytest.mark.asyncio
