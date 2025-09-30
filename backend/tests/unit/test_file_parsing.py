@@ -3,7 +3,7 @@ Unit tests for file parsing service
 """
 import pytest
 import io
-from backend.src.services.file_parsing_service import FileParsingService
+from src.services.file_parsing_service import FileParsingService
 
 
 class TestFileParsingService:

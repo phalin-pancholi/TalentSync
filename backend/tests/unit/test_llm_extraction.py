@@ -4,8 +4,8 @@ Unit tests for LLM extraction service
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 import json
-from backend.src.services.llm_extraction_service import LLMExtractionService
-from backend.src.models.job_posting import JobPostingLLMCreate
+from src.services.llm_extraction_service import LLMExtractionService
+from src.models.job_posting import JobPostingLLMCreate
 
 
 class TestLLMExtractionService:
@@ -21,7 +21,7 @@ class TestLLMExtractionService:
     def test_init_with_api_key(self):
         """Test initialization with API key"""
         with patch.dict('os.environ', {'GOOGLE_API_KEY': 'test_key'}):
-            with patch('backend.src.services.llm_extraction_service.ChatGoogleGenerativeAI') as mock_llm:
+            with patch('src.services.llm_extraction_service.ChatGoogleGenerativeAI') as mock_llm:
                 service = LLMExtractionService()
                 assert service.api_key == 'test_key'
                 mock_llm.assert_called_once()
@@ -48,7 +48,7 @@ class TestLLMExtractionService:
             service.extract_job_info("   \n\t  ")
         assert "Empty text content" in str(exc_info.value)
     
-    @patch('backend.src.services.llm_extraction_service.ChatGoogleGenerativeAI')
+    @patch('src.services.llm_extraction_service.ChatGoogleGenerativeAI')
     def test_extract_job_info_success(self, mock_llm_class):
         """Test successful job information extraction"""
         # Mock LLM response
@@ -78,7 +78,7 @@ class TestLLMExtractionService:
         assert result.department == "Engineering"
         assert result.location == "San Francisco"
     
-    @patch('backend.src.services.llm_extraction_service.ChatGoogleGenerativeAI')
+    @patch('src.services.llm_extraction_service.ChatGoogleGenerativeAI')
     def test_extract_job_info_with_json_markers(self, mock_llm_class):
         """Test extraction with JSON wrapped in markdown markers"""
         # Mock LLM response with markdown JSON
@@ -109,7 +109,7 @@ class TestLLMExtractionService:
         assert result.department == "Data Science"
         assert result.location == "New York"
     
-    @patch('backend.src.services.llm_extraction_service.ChatGoogleGenerativeAI')
+    @patch('src.services.llm_extraction_service.ChatGoogleGenerativeAI')
     def test_extract_job_info_invalid_json(self, mock_llm_class):
         """Test extraction with invalid JSON response"""
         # Mock LLM response with invalid JSON
@@ -132,7 +132,7 @@ class TestLLMExtractionService:
         assert result.department is None
         assert result.location is None
     
-    @patch('backend.src.services.llm_extraction_service.ChatGoogleGenerativeAI')
+    @patch('src.services.llm_extraction_service.ChatGoogleGenerativeAI')
     def test_extract_job_info_missing_fields(self, mock_llm_class):
         """Test extraction with missing fields in response"""
         # Mock LLM response with missing fields
@@ -159,7 +159,7 @@ class TestLLMExtractionService:
         assert result.department is None
         assert result.location is None
     
-    @patch('backend.src.services.llm_extraction_service.ChatGoogleGenerativeAI')
+    @patch('src.services.llm_extraction_service.ChatGoogleGenerativeAI')
     def test_extract_job_info_empty_strings_to_none(self, mock_llm_class):
         """Test that empty strings are converted to None"""
         # Mock LLM response with empty strings

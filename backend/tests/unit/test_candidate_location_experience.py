@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 from bson import ObjectId
 from datetime import datetime
 
-from backend.src.models.candidate import CandidateCreate, CandidateUpdate, CandidateLLMCreate, Candidate
-from backend.src.services.candidate_service import CandidateService
+from src.models.candidate import CandidateCreate, CandidateUpdate, CandidateLLMCreate, Candidate
+from src.services.candidate_service import CandidateService
 
 
 class TestCandidateModel:

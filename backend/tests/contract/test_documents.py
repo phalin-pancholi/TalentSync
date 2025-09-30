@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
-from backend.src.api.main import app
+from src.api.main import app
 
 client = TestClient(app)
 
@@ -26,7 +26,7 @@ def test_get_document_not_found():
     response = client.get("/documents/nonexistent")
     assert response.status_code == 404
 
-@patch('backend.src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
+@patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
 def test_generate_profile_summary_contract(mock_generate_summary):
     """Contract test for profile summary generation endpoint"""
     # Mock the LLM response
@@ -88,7 +88,7 @@ Developed multiple web applications using modern frontend technologies.
     assert call_args["email"] == "john.doe@example.com"
     assert "ReactJS" in call_args["skills"]
 
-@patch('backend.src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
+@patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
 def test_generate_profile_summary_with_feedback_contract(mock_generate_summary):
     """Contract test for profile summary generation with feedback data"""
     mock_generate_summary.return_value = "Mock profile summary with feedback"
@@ -137,7 +137,7 @@ def test_generate_profile_summary_candidate_not_found():
     response = client.post("/candidates/nonexistent_id/profile-summary")
     assert response.status_code == 404
 
-@patch('backend.src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
+@patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
 def test_generate_profile_summary_llm_error_contract(mock_generate_summary):
     """Contract test for handling LLM service errors"""
     # Mock LLM service failure

@@ -48,9 +48,15 @@ def test_candidate_extra_details_integration():
         assert extra_detail["created_at"]
         
         # Step 3: Retrieve extra details for the candidate
+        
+    finally:
+        # Cleanup: Delete the test candidate if created
+        if 'candidate_id' in locals():
+            delete_response = requests.delete(f"{BASE_URL}/{candidate_id}")
+
 
 @pytest.mark.integration 
-@patch('backend.src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
+@patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
 def test_profile_summary_generation_integration(mock_generate_summary):
     """Integration test for the complete profile summary generation workflow"""
     
@@ -163,7 +169,7 @@ def test_profile_summary_missing_candidate():
     assert summary_response.status_code == 404
 
 @pytest.mark.integration
-@patch('backend.src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
+@patch('src.services.llm_extraction_service.LLMExtractionService.generate_profile_summary')
 def test_profile_summary_llm_service_error_integration(mock_generate_summary):
     """Integration test for handling LLM service errors during profile summary generation"""
     

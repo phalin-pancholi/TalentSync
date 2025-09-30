@@ -7,8 +7,8 @@ import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi.testclient import TestClient
-from backend.src.api.main import app
-from backend.src.services.db_service import database_service
+from src.api.main import app
+from src.services.db_service import database_service
 
 client = TestClient(app)
 TEST_DATA_DIR = "/home/adarsh/hackathon/TalentSync/backend/tests/data"
@@ -50,7 +50,7 @@ async def test_end_to_end_job_upload_and_storage():
 @pytest.mark.asyncio
 async def test_file_parsing_service_integration():
     """Test file parsing service with actual test files"""
-    from backend.src.services.file_parsing_service import FileParsingService
+    from src.services.file_parsing_service import FileParsingService
     
     # Test text file parsing
     txt_path = os.path.join(TEST_DATA_DIR, "sample_job.txt")
@@ -81,7 +81,7 @@ async def test_file_parsing_service_integration():
 @pytest.mark.asyncio
 async def test_llm_extraction_service_integration():
     """Test LLM extraction service with sample text"""
-    from backend.src.services.llm_extraction_service import LLMExtractionService
+    from src.services.llm_extraction_service import LLMExtractionService
     
     llm_service = LLMExtractionService()
     
@@ -117,8 +117,8 @@ async def test_llm_extraction_service_integration():
 @pytest.mark.asyncio
 async def test_database_job_creation_from_llm():
     """Test database job creation using LLM-extracted data"""
-    from backend.src.services.job_service import job_service
-    from backend.src.models.job_posting import JobPostingLLMCreate
+    from src.services.job_service import job_service
+    from src.models.job_posting import JobPostingLLMCreate
     
     # Create test job data with some None fields
     job_data = JobPostingLLMCreate(
