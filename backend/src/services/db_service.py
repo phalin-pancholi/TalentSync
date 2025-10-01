@@ -2,16 +2,14 @@
 Database service for TalentSync backend
 """
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Optional
 import os
-from pathlib import Path
 
 
 class DatabaseService:
     """Service for managing MongoDB connections and operations"""
     
     def __init__(self):
-        self.client: Optional[AsyncIOMotorClient] = None
+        self.client = None
         self.database = None
         
     async def connect_to_mongo(self):

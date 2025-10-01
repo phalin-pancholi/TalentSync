@@ -10,7 +10,7 @@ from fastapi import HTTPException, UploadFile
 import PyPDF2
 from docx import Document as DocxDocument
 
-from ..models.document import Document, DocumentCreate, DocumentResponse
+from ..models.document import Document, DocumentResponse
 from ..services.db_service import get_database
 
 
@@ -30,11 +30,7 @@ class DocumentService:
         if self._collection is None:
             self._collection = self.db.documents
         return self._collection
-        self.upload_directory = "uploads"
         
-        # Create upload directory if it doesn't exist
-        os.makedirs(self.upload_directory, exist_ok=True)
-
     async def create_document(self, candidate_id: str, file: UploadFile) -> str:
         """Create a new document from uploaded file"""
         try:

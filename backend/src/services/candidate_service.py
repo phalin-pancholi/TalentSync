@@ -45,7 +45,7 @@ class CandidateService:
     async def create_candidate(self, candidate_data: CandidateCreate, document_id: Optional[str] = None) -> str:
         """Create a new candidate"""
         try:
-            candidate_dict = candidate_data.dict()
+            candidate_dict = candidate_data.model_dump()
             candidate_dict['created_at'] = datetime.now(datetime.timezone.utc)
             candidate_dict['updated_at'] = datetime.now(datetime.timezone.utc)
             
@@ -84,7 +84,7 @@ class CandidateService:
     async def update_candidate(self, candidate_id: str, candidate_update: CandidateUpdate) -> Optional[Candidate]:
         """Update a candidate"""
         try:
-            update_data = candidate_update.dict(exclude_unset=True)
+            update_data = candidate_update.model_dump(exclude_unset=True)
             if update_data:
                 update_data['updated_at'] = datetime.now(datetime.timezone.utc)
                 
@@ -162,7 +162,7 @@ class CandidateService:
         """Create a candidate from LLM extraction with raw text storage"""
         try:
             # Create candidate document with optional fields
-            candidate_dict = candidate_data.dict()
+            candidate_dict = candidate_data.model_dump()
             candidate_dict['created_at'] = datetime.now(datetime.timezone.utc)
             candidate_dict['updated_at'] = datetime.now(datetime.timezone.utc)
             candidate_dict['raw_text'] = raw_text

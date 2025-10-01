@@ -23,9 +23,9 @@ class JobService:
     async def create_job(self, job_data: JobPostingCreate) -> JobPosting:
         """Create a new job posting"""
         collection = database_service.get_collection(self.collection_name)
-        job_dict = job_data.dict()
+        job_dict = job_data.model_dump()
         job_obj = JobPosting(**job_dict)
-        await collection.insert_one(job_obj.dict())
+        await collection.insert_one(job_obj.model_dump())
         return job_obj
     
     async def get_job_by_id(self, job_id: str) -> Optional[JobPosting]:
@@ -43,7 +43,7 @@ class JobService:
         if not job:
             return None
         
-        update_data = {k: v for k, v in job_update.dict().items() if v is not None}
+        update_data = {k: v for k, v in job_update.model_dump().items() if v is not None}
         update_data["updated_at"] = datetime.now(timezone.utc)
         
         await collection.update_one({"id": job_id}, {"$set": update_data})
@@ -54,9 +54,9 @@ class JobService:
     async def create_job_from_llm(self, job_data: JobPostingLLMCreate) -> JobPosting:
         """Create a new job posting from LLM extraction (allows null fields)"""
         collection = database_service.get_collection(self.collection_name)
-        job_dict = job_data.dict()
+        job_dict = job_data.model_dump()
         job_obj = JobPosting(**job_dict)
-        await collection.insert_one(job_obj.dict())
+        await collection.insert_one(job_obj.model_dump())
         return job_obj
     
     async def delete_job(self, job_id: str) -> bool:
