@@ -101,8 +101,8 @@ class TestCandidateService:
                 '_id': ObjectId(candidate_id),
                 'name': 'Test User',
                 'location': 'Boston, MA',
-                'created_at': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'created_at': datetime.now(datetime.timezone.utc),
+                'updated_at': datetime.now(datetime.timezone.utc)
             }
             mock_collection.find_one_and_update = AsyncMock(return_value=mock_result)
             
@@ -123,8 +123,8 @@ class TestCandidateService:
             name="Test User",
             location="Seattle, WA",
             experience="4 years",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(datetime.timezone.utc),
+            updated_at=datetime.now(datetime.timezone.utc)
         )
         
         response = service.to_response(candidate)

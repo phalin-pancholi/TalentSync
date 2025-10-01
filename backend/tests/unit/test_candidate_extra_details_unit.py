@@ -23,8 +23,8 @@ class TestCandidateExtraDetailsService:
             '_id': ObjectId(),
             'name': 'Test Candidate',
             'email': 'test@example.com',
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'created_at': datetime.now(datetime.timezone.utc),
+            'updated_at': datetime.now(datetime.timezone.utc)
         }
     
     @pytest.fixture

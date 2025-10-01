@@ -9,8 +9,7 @@ from fastapi import HTTPException, UploadFile
 import io
 
 from ..models.candidate import (Candidate, CandidateCreate, CandidateUpdate, CandidateResponse, 
-                               CandidateLLMCreate, CandidateExtraDetail, CandidateExtraDetailCreate,
-                               CandidateExtraDetailResponse)
+                               CandidateLLMCreate, CandidateExtraDetailResponse)
 from ..models.document import RawTextData
 from ..services.db_service import get_database
 from ..services.file_parsing_service import FileParsingService
@@ -47,8 +46,8 @@ class CandidateService:
         """Create a new candidate"""
         try:
             candidate_dict = candidate_data.dict()
-            candidate_dict['created_at'] = datetime.utcnow()
-            candidate_dict['updated_at'] = datetime.utcnow()
+            candidate_dict['created_at'] = datetime.now(datetime.timezone.utc)
+            candidate_dict['updated_at'] = datetime.now(datetime.timezone.utc)
             
             if document_id:
                 candidate_dict['document_id'] = ObjectId(document_id)
@@ -87,7 +86,7 @@ class CandidateService:
         try:
             update_data = candidate_update.dict(exclude_unset=True)
             if update_data:
-                update_data['updated_at'] = datetime.utcnow()
+                update_data['updated_at'] = datetime.now(datetime.timezone.utc)
                 
                 # Check for email uniqueness if email is being updated
                 if 'email' in update_data:
@@ -164,8 +163,8 @@ class CandidateService:
         try:
             # Create candidate document with optional fields
             candidate_dict = candidate_data.dict()
-            candidate_dict['created_at'] = datetime.utcnow()
-            candidate_dict['updated_at'] = datetime.utcnow()
+            candidate_dict['created_at'] = datetime.now(datetime.timezone.utc)
+            candidate_dict['updated_at'] = datetime.now(datetime.timezone.utc)
             candidate_dict['raw_text'] = raw_text
             candidate_dict['file_hash'] = file_hash
             
@@ -177,7 +176,7 @@ class CandidateService:
             raw_text_data = {
                 'text': raw_text,
                 'candidate_id': candidate_id,
-                'created_at': datetime.utcnow(),
+                'created_at': datetime.now(datetime.timezone.utc),
                 'extraction_method': 'LLM',
                 'file_hash': file_hash
             }
@@ -272,7 +271,7 @@ class CandidateService:
                 'candidate_id': ObjectId(candidate_id),
                 'text_content': text_content.strip(),
                 'type': file_type,
-                'created_at': datetime.utcnow()
+                'created_at': datetime.now(datetime.timezone.utc)
             }
             
             result = await self.extra_details_collection.insert_one(extra_detail_data)
