@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from unittest.mock import AsyncMock, patch
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.models.candidate import CandidateCreate, CandidateUpdate, CandidateLLMCreate, Candidate
 from src.services.candidate_service import CandidateService
@@ -101,8 +101,8 @@ class TestCandidateService:
                 '_id': ObjectId(candidate_id),
                 'name': 'Test User',
                 'location': 'Boston, MA',
-                'created_at': datetime.now(datetime.timezone.utc),
-                'updated_at': datetime.now(datetime.timezone.utc)
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
             }
             mock_collection.find_one_and_update = AsyncMock(return_value=mock_result)
             
@@ -123,8 +123,8 @@ class TestCandidateService:
             name="Test User",
             location="Seattle, WA",
             experience="4 years",
-            created_at=datetime.now(datetime.timezone.utc),
-            updated_at=datetime.now(datetime.timezone.utc)
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         
         response = service.to_response(candidate)

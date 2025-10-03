@@ -53,7 +53,7 @@ class DocumentService:
                 'file_type': file_extension,
                 'content_text': text_content,
                 'raw_file_path': file_path,
-                'upload_date': datetime.now(datetime.timezone.utc)
+                'upload_date': datetime.now(timezone.utc)
             }
             
             result = await self.collection.insert_one(document_data)
@@ -140,7 +140,7 @@ class DocumentService:
             os.makedirs(candidate_dir, exist_ok=True)
             
             # Generate unique filename with timestamp
-            timestamp = datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             file_extension = filename.split('.')[-1] if filename and '.' in filename else 'bin'
             unique_filename = f"{timestamp}_{filename}"
             
@@ -356,7 +356,7 @@ class DocumentService:
             if y_position >= 80:
                 page_content += "0 -10 Td\n"
                 page_content += "/F1 8 Tf\n"
-                footer_text = f"Generated on {datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC by TalentSync"
+                footer_text = f"Generated on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC by TalentSync"
                 page_content += f"({escape_pdf_string(footer_text)}) Tj\n"
             
             page_content += "ET"

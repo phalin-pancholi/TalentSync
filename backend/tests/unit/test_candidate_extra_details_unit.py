@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import mock_open, patch, MagicMock
 import io
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.services.candidate_service import CandidateService
 from src.services.file_parsing_service import FileParsingService
@@ -23,8 +23,8 @@ class TestCandidateExtraDetailsService:
             '_id': ObjectId(),
             'name': 'Test Candidate',
             'email': 'test@example.com',
-            'created_at': datetime.now(datetime.timezone.utc),
-            'updated_at': datetime.now(datetime.timezone.utc)
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
         }
     
     @pytest.fixture

@@ -19,11 +19,11 @@ class MatchingService:
         # Get all candidates from database
         all_candidates = await self.candidate_service.get_candidates(skip=0, limit=1000)
         
-        job_skills = set(job.skills)
+        job_skills = set(job.skills) if job.skills else set()
         candidates_with_match = []
         
         for candidate in all_candidates:
-            candidate_skills = set(candidate.skills)
+            candidate_skills = set(candidate.skills) if candidate.skills else set()
             matched_skills = list(job_skills.intersection(candidate_skills))
             match_percentage = (len(matched_skills) / len(job_skills)) * 100 if job_skills else 0
             

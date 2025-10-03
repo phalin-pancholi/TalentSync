@@ -1,7 +1,7 @@
 """
 Candidate service for TalentSync backend
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
@@ -46,8 +46,8 @@ class CandidateService:
         """Create a new candidate"""
         try:
             candidate_dict = candidate_data.model_dump()
-            candidate_dict['created_at'] = datetime.now(datetime.timezone.utc)
-            candidate_dict['updated_at'] = datetime.now(datetime.timezone.utc)
+            candidate_dict['created_at'] = datetime.now(timezone.utc)
+            candidate_dict['updated_at'] = datetime.now(timezone.utc)
             
             if document_id:
                 candidate_dict['document_id'] = ObjectId(document_id)
@@ -86,7 +86,7 @@ class CandidateService:
         try:
             update_data = candidate_update.model_dump(exclude_unset=True)
             if update_data:
-                update_data['updated_at'] = datetime.now(datetime.timezone.utc)
+                update_data['updated_at'] = datetime.now(timezone.utc)
                 
                 # Check for email uniqueness if email is being updated
                 if 'email' in update_data:
@@ -163,8 +163,8 @@ class CandidateService:
         try:
             # Create candidate document with optional fields
             candidate_dict = candidate_data.model_dump()
-            candidate_dict['created_at'] = datetime.now(datetime.timezone.utc)
-            candidate_dict['updated_at'] = datetime.now(datetime.timezone.utc)
+            candidate_dict['created_at'] = datetime.now(timezone.utc)
+            candidate_dict['updated_at'] = datetime.now(timezone.utc)
             candidate_dict['raw_text'] = raw_text
             candidate_dict['file_hash'] = file_hash
             
@@ -176,7 +176,7 @@ class CandidateService:
             raw_text_data = {
                 'text': raw_text,
                 'candidate_id': candidate_id,
-                'created_at': datetime.now(datetime.timezone.utc),
+                'created_at': datetime.now(timezone.utc),
                 'extraction_method': 'LLM',
                 'file_hash': file_hash
             }
@@ -271,7 +271,7 @@ class CandidateService:
                 'candidate_id': ObjectId(candidate_id),
                 'text_content': text_content.strip(),
                 'type': file_type,
-                'created_at': datetime.now(datetime.timezone.utc)
+                'created_at': datetime.now(timezone.utc)
             }
             
             result = await self.extra_details_collection.insert_one(extra_detail_data)
