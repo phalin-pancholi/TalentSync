@@ -1,7 +1,7 @@
 """
 Main FastAPI application for TalentSync backend
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -47,6 +47,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses"""
+    response = await call_next(request)
+    
+    # Add X-Content-Type-Options header to prevent MIME sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Add Cross-Origin-Resource-Policy header for Spectre vulnerability protection
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    
+    # Add other security headers for good measure
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # Add cache control headers for sensitive endpoints
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    
+    return response
 
 # Include routers with API prefix
 api_prefix = "/api"

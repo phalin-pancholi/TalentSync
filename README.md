@@ -148,6 +148,17 @@ frontend/
 └── package.json      # Dependencies
 ```
 
+## zap scan
+```
+docker run   --network talentsync_talentsync-network   -v $(pwd):/zap/wrk/:rw   -t zaproxy/zap-stable:latest   zap-full-scan.py   -t http://backend:8001   -g gen.conf   -r testreport.html
+```
+
+```
+docker run   --network talentsync_talentsync-network   -v $(pwd):/zap/wrk/:rw   -t zaproxy/zap-stable:latest   zap-full-scan.py   -t http://frontend:3000   -g gen.conf   -r testreport.html
+```
+
+
+
 ## Contributing
 
 1. Create a feature branch from `master`
