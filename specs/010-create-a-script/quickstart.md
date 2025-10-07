@@ -31,11 +31,11 @@ The script will prompt you for:
 
 ### Zoho Access Token
 - Format: Alphanumeric characters, dots, underscores, and hyphens
-- Example: `1000.abc123def456.xyz789`
+- Example: `1000.**********************`
 
 ### Google API Key
 - Format: At least 20 characters of alphanumeric, underscore, or hyphen
-- Example: `AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI`
+- Example: `AIzaSy****************************HI`
 
 ### Sync Interval
 - Format: Positive integer (minutes)
@@ -78,8 +78,8 @@ SUCCESS: Docker is installed and running.
 INFO: Checking WSL environment...
 SUCCESS: Running in WSL environment.
 INFO: Collecting environment variables...
-Enter Zoho Access Token: 1000.abc123def456.xyz789
-Enter Google API Key: AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI
+Enter Zoho Access Token: 1000.**********************
+Enter Google API Key: AIzaSy****************************HI
 Enter Sync Interval (minutes, default 60): 30
 SUCCESS: Environment variables collected and validated.
 INFO: Exporting environment variables for Docker Compose...
